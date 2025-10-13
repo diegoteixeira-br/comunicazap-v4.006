@@ -1,5 +1,5 @@
 const EVOLUTION_API_URL = "https://evo.belaformaonline.com";
-const EVOLUTION_API_KEY = ""; // TODO: Adicionar API Key
+const EVOLUTION_API_KEY = "31174a7e3db03f6f8052a1af809032ec";
 
 interface CreateInstanceResponse {
   instance: {
