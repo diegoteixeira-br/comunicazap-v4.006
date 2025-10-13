@@ -163,13 +163,6 @@ const Results = () => {
                       >
                         {"{nome}"}
                       </Badge>
-                      <Badge 
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-secondary/80"
-                        onClick={() => setCustomMessage(prev => prev + "{telefone}")}
-                      >
-                        {"{telefone}"}
-                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Clique nos códigos para adicionar à mensagem
