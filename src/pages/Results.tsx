@@ -80,14 +80,25 @@ const Results = () => {
 
   const handleSendAll = async () => {
     toast.info("Enviando mensagens...", {
-      description: "Processando todos os clientes"
+      description: "Processando todos os clientes sequencialmente"
     });
 
     for (let i = 0; i < clients.length; i++) {
+      toast.info(`Enviando ${i + 1}/${clients.length}`, {
+        description: `Cliente: ${clients[i]["Nome do Cliente"]}`
+      });
+      
       await handleSend(clients[i], i);
-      // Small delay between requests to avoid overwhelming the server
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Delay de 3 segundos entre cada envio para garantir envio sequencial
+      if (i < clients.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
     }
+
+    toast.success("Envio concluído!", {
+      description: `${clients.length} mensagens processadas`
+    });
   };
 
   const getStatusBadge = (status: "idle" | "sending" | "success" | "error") => {
