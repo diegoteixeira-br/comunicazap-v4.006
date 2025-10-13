@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, CheckCircle, AlertCircle, ArrowLeft, Info } from "lucide-react";
 import { toast } from "sonner";
 import { ClientData } from "./Upload";
-import { evolutionApi, getInstanceName } from "@/lib/evolutionApi";
 
 const WEBHOOK_URL = "https://webhook.belaformaonline.com/webhook/disparo";
 
@@ -49,33 +48,27 @@ const Results = () => {
 
     try {
       const processedMessage = customMessage ? replaceVariables(customMessage, client) : "";
-      const instanceName = getInstanceName();
       
-      // Envia via Evolution API
-      await evolutionApi.sendMessage(
-        instanceName,
-        client["Telefone do Cliente"],
-        processedMessage
-      );
-      
-      // Também envia para o webhook n8n
-      await fetch(WEBHOOK_URL, {
+      const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          session: instanceName,
           nome: client["Nome do Cliente"],
           telefone: client["Telefone do Cliente"],
           mensagem: processedMessage,
         }),
       });
 
-      setSendingStatus(prev => ({ ...prev, [index]: "success" }));
-      toast.success("Mensagem enviada!", {
-        description: `Enviado para ${client["Nome do Cliente"]}`
-      });
+      if (response.ok) {
+        setSendingStatus(prev => ({ ...prev, [index]: "success" }));
+        toast.success("Mensagem enviada!", {
+          description: `Enviado para ${client["Nome do Cliente"]}`
+        });
+      } else {
+        throw new Error("Erro na resposta do servidor");
+      }
     } catch (error) {
       console.error("Erro ao enviar:", error);
       setSendingStatus(prev => ({ ...prev, [index]: "error" }));

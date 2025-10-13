@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageCircle, Upload, Send, CheckCircle2, Smartphone } from "lucide-react";
+import { MessageCircle, Upload, Send, CheckCircle2 } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -39,26 +39,15 @@ const Index = () => {
             Envie mensagens via WhatsApp de forma rápida e eficiente. 
             Basta fazer upload da sua planilha e deixar o sistema trabalhar por você.
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Button
-              size="lg"
-              variant="hero"
-              onClick={() => navigate("/connection")}
-              className="text-lg px-8 py-6 h-auto"
-            >
-              <Smartphone className="h-5 w-5 mr-2" />
-              Conectar WhatsApp
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => navigate("/upload")}
-              className="text-lg px-8 py-6 h-auto"
-            >
-              <Upload className="h-5 w-5 mr-2" />
-              Enviar Mensagens
-            </Button>
-          </div>
+          <Button
+            size="lg"
+            variant="hero"
+            onClick={() => navigate("/upload")}
+            className="text-lg px-8 py-6 h-auto"
+          >
+            <Upload className="h-5 w-5 mr-2" />
+            Começar Agora
+          </Button>
         </div>
 
         {/* Features Grid */}
