@@ -138,6 +138,7 @@ export type Database = {
       }
       whatsapp_instances: {
         Row: {
+          api_key: string | null
           created_at: string | null
           id: string
           instance_id: string | null
@@ -151,6 +152,7 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
+          api_key?: string | null
           created_at?: string | null
           id?: string
           instance_id?: string | null
@@ -164,6 +166,7 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
+          api_key?: string | null
           created_at?: string | null
           id?: string
           instance_id?: string | null

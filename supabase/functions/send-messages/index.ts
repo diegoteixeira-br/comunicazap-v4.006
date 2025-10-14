@@ -104,6 +104,7 @@ serve(async (req) => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             instanceName: instance.instance_name,
+            apiKey: instance.api_key,
             nome: client["Nome do Cliente"],
             telefone: client["Telefone do Cliente"],
             mensagem: message.replace('{nome}', client["Nome do Cliente"])

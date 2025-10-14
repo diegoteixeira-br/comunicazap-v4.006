@@ -74,6 +74,10 @@ serve(async (req) => {
     const evolutionData = await createInstanceResponse.json();
     console.log('Evolution API response:', evolutionData);
 
+    // Get instance API key
+    const instanceApiKey = evolutionData.hash?.apikey || evolutionData.apikey;
+    console.log('Instance API key retrieved:', instanceApiKey ? 'Yes' : 'No');
+
     const connectResponse = await fetch(`${evolutionApiUrl}/instance/connect/${instanceName}`, {
       method: 'GET',
       headers: {
@@ -92,7 +96,8 @@ serve(async (req) => {
         instance_id: evolutionData.instance?.instanceId || instanceName,
         status: 'pending',
         qr_code: connectData.qrcode?.base64 || connectData.base64,
-        qr_code_updated_at: new Date().toISOString()
+        qr_code_updated_at: new Date().toISOString(),
+        api_key: instanceApiKey
       }, {
         onConflict: 'user_id'
       })

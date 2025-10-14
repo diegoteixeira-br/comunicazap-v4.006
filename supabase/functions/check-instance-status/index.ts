@@ -39,7 +39,11 @@ serve(async (req) => {
     }
 
     const evolutionApiUrl = Deno.env.get('EVOLUTION_API_URL') ?? '';
-    const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
+    const globalApiKey = Deno.env.get('EVOLUTION_API_KEY') ?? '';
+    
+    // Use instance-specific API key if available, otherwise use global key
+    const evolutionApiKey = instance.api_key || globalApiKey;
+    console.log('Using API key:', instance.api_key ? 'Instance-specific' : 'Global');
 
     const statusResponse = await fetch(
       `${evolutionApiUrl}/instance/connectionState/${instance.instance_name}`,
