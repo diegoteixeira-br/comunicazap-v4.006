@@ -156,9 +156,8 @@ const Results = () => {
       }
 
       const clientData = {
-        nome: client["Nome do Cliente"],
-        telefone: client["Telefone do Cliente"],
-        mensagem: processedMessage,
+        "Nome do Cliente": client["Nome do Cliente"],
+        "Telefone do Cliente": client["Telefone do Cliente"],
       };
 
       console.log("🚀 Enviando via edge function:", clientData);
@@ -213,9 +212,8 @@ const Results = () => {
 
     try {
       const clientsData = clients.map(client => ({
-        nome: client["Nome do Cliente"],
-        telefone: client["Telefone do Cliente"],
-        mensagem: replaceVariables(customMessage, client)
+        "Nome do Cliente": client["Nome do Cliente"],
+        "Telefone do Cliente": client["Telefone do Cliente"]
       }));
 
       console.log("🚀 Enviando em massa:", { total: clientsData.length, campaignName });
