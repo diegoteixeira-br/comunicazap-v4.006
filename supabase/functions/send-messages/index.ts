@@ -103,7 +103,7 @@ serve(async (req) => {
           .select()
           .single();
 
-        await new Promise(resolve => setTimeout(resolve, index * 60000));
+        await new Promise(resolve => setTimeout(resolve, index * 40000));
 
         const payload: any = {
           instanceName: instance.instance_name,
