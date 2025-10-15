@@ -17,19 +17,19 @@ const Index = () => {
 
   const features = [
     {
-      icon: Upload,
-      title: "Faça Upload",
-      description: "Envie sua planilha com os dados dos clientes em formato .xlsx ou .csv"
+      icon: MessageCircle,
+      title: "WhatsApp Conectado",
+      description: "Conecte seu WhatsApp de forma segura via QR Code e gerencie suas instâncias"
     },
     {
-      icon: CheckCircle2,
-      title: "Validação Automática",
-      description: "O sistema valida automaticamente os dados da sua planilha"
+      icon: Upload,
+      title: "Upload de Planilha",
+      description: "Envie planilhas .xlsx, .xls ou .csv com nome e telefone dos clientes"
     },
     {
       icon: Send,
-      title: "Disparo Rápido",
-      description: "Envie mensagens para todos os clientes com apenas um clique"
+      title: "Envio Inteligente",
+      description: "Mensagens enviadas com delay de 3 segundos entre cada contato para segurança"
     }
   ];
 
@@ -42,11 +42,11 @@ const Index = () => {
             <MessageCircle className="h-8 w-8 text-primary" />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Disparo de WhatsApp
+            Disparo em Massa via WhatsApp
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Envie mensagens via WhatsApp de forma rápida e eficiente. 
-            Basta fazer upload da sua planilha e deixar o sistema trabalhar por você.
+            Conecte seu WhatsApp, faça upload da sua planilha de contatos e envie mensagens personalizadas automaticamente. 
+            Sistema profissional com controle de envio e histórico completo.
           </p>
           <Button
             size="lg"
@@ -86,9 +86,9 @@ const Index = () => {
                   1
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Prepare sua Planilha</h3>
+                  <h3 className="font-semibold mb-1">Conecte seu WhatsApp</h3>
                   <p className="text-sm text-muted-foreground">
-                    Crie uma planilha com as colunas "Nome do Cliente" e "Telefone do Cliente"
+                    Escaneie o QR Code para conectar sua conta WhatsApp de forma segura
                   </p>
                 </div>
               </div>
@@ -97,9 +97,9 @@ const Index = () => {
                   2
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Faça o Upload</h3>
+                  <h3 className="font-semibold mb-1">Prepare e Envie sua Planilha</h3>
                   <p className="text-sm text-muted-foreground">
-                    Envie sua planilha no formato .xlsx, .xls ou .csv
+                    Faça upload do arquivo com "Nome do Cliente" e "Telefone do Cliente" (.xlsx, .xls ou .csv)
                   </p>
                 </div>
               </div>
@@ -108,9 +108,9 @@ const Index = () => {
                   3
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Revise e Envie</h3>
+                  <h3 className="font-semibold mb-1">Personalize e Dispare</h3>
                   <p className="text-sm text-muted-foreground">
-                    Confira os dados e clique para enviar as mensagens
+                    Escreva sua mensagem, revise os contatos e inicie o envio automático
                   </p>
                 </div>
               </div>
