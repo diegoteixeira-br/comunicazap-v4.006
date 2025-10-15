@@ -34,13 +34,19 @@ serve(async (req) => {
 
     const requestSchema = z.object({
       clients: z.array(clientSchema).min(1, "At least one client required").max(1000, "Maximum 1000 clients per campaign"),
-      message: z.string().trim().min(1, "Message is required").max(1000, "Message too long"),
+      message: z.string().trim().max(1000, "Message too long").optional(),
+      image: z.string().optional(),
       campaignName: z.string().trim().max(100, "Campaign name too long").optional()
     });
 
     // Validate input
     const validatedData = requestSchema.parse(await req.json());
-    const { clients, message, campaignName } = validatedData;
+    const { clients, message, image, campaignName } = validatedData;
+
+    // Validar que ao menos mensagem ou imagem está presente
+    if (!message?.trim() && !image) {
+      throw new Error('Either message or image is required');
+    }
 
     console.log('Send messages request:', { 
       user: user.id, 
@@ -91,7 +97,7 @@ serve(async (req) => {
             campaign_id: campaign.id,
             client_name: client["Nome do Cliente"],
             client_phone: client["Telefone do Cliente"],
-            message: message.replace('{nome}', client["Nome do Cliente"]),
+            message: message ? message.replace('{nome}', client["Nome do Cliente"]) : (image ? '[Imagem]' : ''),
             status: 'pending'
           })
           .select()
@@ -99,17 +105,28 @@ serve(async (req) => {
 
         await new Promise(resolve => setTimeout(resolve, index * 60000));
 
+        const payload: any = {
+          instanceName: instance.instance_name,
+          api_key: instance.api_key,
+          number: client["Telefone do Cliente"],
+        };
+
+        // Adicionar texto se existir
+        if (message?.trim()) {
+          payload.text = message.replace('{nome}', client["Nome do Cliente"]);
+        }
+
+        // Adicionar imagem se existir
+        if (image) {
+          payload.image = image;
+        }
+
         const response = await fetch(n8nWebhookUrl, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            instanceName: instance.instance_name,
-            api_key: instance.api_key,
-            number: client["Telefone do Cliente"],
-            text: message.replace('{nome}', client["Nome do Cliente"])
-          })
+          body: JSON.stringify(payload)
         });
 
         if (response.ok) {

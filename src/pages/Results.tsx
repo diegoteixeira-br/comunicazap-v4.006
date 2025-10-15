@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ClientData } from "./Upload";
 import { 
@@ -32,6 +32,8 @@ const Results = () => {
   const [customMessage, setCustomMessage] = useState("");
   const [whatsappInstance, setWhatsappInstance] = useState<any>(null);
   const [loadingInstance, setLoadingInstance] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   // Template states
   const [showTemplates, setShowTemplates] = useState(false);
@@ -135,15 +137,53 @@ const Results = () => {
       .replace(/{telefone}/g, client["Telefone do Cliente"]);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast.error("Arquivo inválido", {
+        description: "Por favor, selecione apenas imagens"
+      });
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande", {
+        description: "Tamanho máximo: 5MB"
+      });
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Criar preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    toast.success("Imagem adicionada!");
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    toast.info("Imagem removida");
+  };
+
   const handleSend = async (client: ClientData, index: number, campaignId?: string) => {
     setSendingStatus(prev => ({ ...prev, [index]: "sending" }));
 
     try {
       const processedMessage = customMessage ? replaceVariables(customMessage, client) : "";
       
-      if (!processedMessage.trim()) {
-        toast.error("Mensagem vazia", {
-          description: "Por favor, digite uma mensagem antes de enviar"
+      if (!processedMessage.trim() && !imageFile) {
+        toast.error("Conteúdo vazio", {
+          description: "Por favor, adicione uma mensagem ou imagem antes de enviar"
         });
         setSendingStatus(prev => ({ ...prev, [index]: "error" }));
         return false;
@@ -160,12 +200,24 @@ const Results = () => {
         "Telefone do Cliente": client["Telefone do Cliente"],
       };
 
+      // Converter imagem para base64 se existir
+      let imageBase64 = null;
+      if (imageFile) {
+        const reader = new FileReader();
+        imageBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(imageFile);
+        });
+      }
+
       console.log("🚀 Enviando via edge function:", clientData);
 
       const { data, error } = await supabase.functions.invoke('send-messages', {
         body: {
           clients: [clientData],
           message: processedMessage,
+          image: imageBase64,
           campaignName: campaignId || `Envio individual - ${new Date().toLocaleString('pt-BR')}`
         }
       });
@@ -193,8 +245,10 @@ const Results = () => {
   };
 
   const handleSendAll = async () => {
-    if (!customMessage.trim()) {
-      toast.error("Digite uma mensagem antes de enviar");
+    if (!customMessage.trim() && !imageFile) {
+      toast.error("Adicione conteúdo antes de enviar", {
+        description: "Digite uma mensagem ou adicione uma imagem"
+      });
       return;
     }
 
@@ -216,12 +270,24 @@ const Results = () => {
         "Telefone do Cliente": client["Telefone do Cliente"]
       }));
 
+      // Converter imagem para base64 se existir
+      let imageBase64 = null;
+      if (imageFile) {
+        const reader = new FileReader();
+        imageBase64 = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(imageFile);
+        });
+      }
+
       console.log("🚀 Enviando em massa:", { total: clientsData.length, campaignName });
 
       const { data, error } = await supabase.functions.invoke('send-messages', {
         body: {
           clients: clientsData,
           message: customMessage,
+          image: imageBase64,
           campaignName
         }
       });
@@ -502,6 +568,44 @@ const Results = () => {
                   {customMessage.length}/1000
                 </span>
               </div>
+            </div>
+
+            {/* Image Upload Section */}
+            <div className="space-y-2">
+              <Label htmlFor="image-upload" className="flex items-center gap-2">
+                <ImagePlus className="h-4 w-4" />
+                Adicionar Imagem (Opcional)
+              </Label>
+              {!imagePreview ? (
+                <div className="relative">
+                  <Input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Formatos aceitos: JPG, PNG, WEBP. Tamanho máximo: 5MB
+                  </p>
+                </div>
+              ) : (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-w-xs max-h-48 rounded-md border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={handleRemoveImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
