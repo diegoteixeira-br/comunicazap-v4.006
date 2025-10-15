@@ -269,6 +269,15 @@ const Index = () => {
                   </p>
                 </div>
               </div>
+              
+              <div className="mt-8 pt-6 border-t border-border/50">
+                <p className="text-xs text-muted-foreground/80 leading-relaxed">
+                  <strong className="text-muted-foreground">⚠️ Aviso Importante:</strong> Use esta ferramenta de forma responsável. 
+                  O envio excessivo de mensagens ou spam pode violar os Termos de Serviço do WhatsApp e resultar no bloqueio 
+                  permanente do seu número. Envie mensagens apenas para contatos que autorizaram o recebimento. 
+                  Recomendamos limitar os envios e respeitar as políticas de uso do WhatsApp para manter sua conta segura.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
