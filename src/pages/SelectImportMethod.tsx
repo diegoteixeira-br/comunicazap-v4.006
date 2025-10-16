@@ -42,18 +42,40 @@ const SelectImportMethod = () => {
         return;
       }
 
+      // Primeiro verifica diretamente no banco de dados
+      const { data: subscriptionData, error: dbError } = await supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (!dbError && subscriptionData) {
+        console.log('Assinatura ativa encontrada:', subscriptionData);
+        setHasActiveSubscription(true);
+        setPollAttempts(99); // Para o polling
+        return;
+      }
+
+      // Se não encontrou no banco, tenta via Edge Function
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro na Edge Function:', error);
+        // Não marca como sem assinatura em caso de erro de rede
+        return;
+      }
       
-      setHasActiveSubscription(data.subscribed || false);
+      if (data?.subscribed) {
+        setHasActiveSubscription(true);
+        setPollAttempts(99); // Para o polling
+      }
     } catch (error) {
-      console.error('Error checking subscription:', error);
-      setHasActiveSubscription(false);
+      console.error('Erro ao verificar assinatura:', error);
     } finally {
       setCheckingSubscription(false);
     }
