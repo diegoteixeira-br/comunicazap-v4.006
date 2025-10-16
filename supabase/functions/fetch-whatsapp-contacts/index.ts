@@ -81,24 +81,42 @@ serve(async (req) => {
 
     const rawContacts = await response.json();
     console.log('Raw contacts received:', rawContacts.length || 0);
+    
+    // Log first contact structure for debugging
+    if (rawContacts.length > 0) {
+      console.log('Sample contact structure:', JSON.stringify(rawContacts[0]));
+    }
 
     // Process and clean contacts
     const contacts: Contact[] = [];
     
     for (const chat of rawContacts) {
       // Skip groups (groups have @g.us suffix)
-      if (chat.id && chat.id.includes('@g.us')) {
+      if (chat.id && (chat.id.includes('@g.us') || chat.remoteJid?.includes('@g.us'))) {
         continue;
       }
 
-      // Extract phone number (remove @s.whatsapp.net suffix)
-      let phone = chat.id ? chat.id.replace('@s.whatsapp.net', '') : '';
+      // Extract phone number - try multiple possible fields
+      let phone = '';
+      
+      // Try remoteJid field first (most reliable)
+      if (chat.remoteJid && typeof chat.remoteJid === 'string') {
+        phone = chat.remoteJid.replace('@s.whatsapp.net', '');
+      }
+      // Try id field as fallback
+      else if (chat.id && typeof chat.id === 'string' && chat.id.includes('@')) {
+        phone = chat.id.replace('@s.whatsapp.net', '');
+      }
+      // Try number field
+      else if (chat.number) {
+        phone = chat.number.toString();
+      }
       
       // Get contact name
-      let name = chat.name || chat.pushName || phone;
+      let name = chat.name || chat.pushName || chat.notifyName || phone;
       
-      // Only add if we have a valid phone number
-      if (phone && phone.length > 0) {
+      // Only add if we have a valid phone number (should be numeric and reasonable length)
+      if (phone && phone.length >= 10 && /^\d+$/.test(phone)) {
         contacts.push({
           name: name,
           phone: phone
