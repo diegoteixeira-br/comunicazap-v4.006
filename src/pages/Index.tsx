@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageCircle, Upload, Send, LogIn, Clock, Shield, Zap, BarChart3, Users, CheckCircle } from "lucide-react";
+import { MessageCircle, Upload, Send, LogIn, Clock, Shield, Zap, BarChart3, Users, CheckCircle, Crown, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 
@@ -79,7 +79,7 @@ const Index = () => {
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Conecte seu WhatsApp, faça upload da sua planilha de contatos e envie mensagens personalizadas automaticamente. 
-            Sistema profissional com controle de envio e histórico completo.
+            Comece grátis com upload de planilhas ou assine o premium para importar contatos direto do WhatsApp.
           </p>
           <Button
             size="lg"
@@ -180,6 +180,99 @@ const Index = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pricing Plans */}
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold text-center mb-4">Escolha Seu Plano</h2>
+          <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
+            Comece grátis com upload de planilhas ou desbloqueie recursos premium
+          </p>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Plano Gratuito */}
+            <Card className="border-2 border-border/50 hover:border-primary/50 transition-all">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle className="text-2xl">Plano Gratuito</CardTitle>
+                <div className="text-3xl font-bold text-primary mt-4">R$ 0</div>
+                <p className="text-muted-foreground text-sm">Para sempre</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Upload de planilhas CSV, XLSX, XLS</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Envio de mensagens personalizadas</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Histórico completo de campanhas</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Delay inteligente de segurança</span>
+                  </li>
+                  <li className="flex items-start gap-3 opacity-50">
+                    <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Importação do WhatsApp</span>
+                  </li>
+                </ul>
+                <Button className="w-full" variant="outline" onClick={() => navigate("/auth")}>
+                  Começar Grátis
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Plano Premium */}
+            <Card className="border-2 border-primary relative hover:shadow-xl transition-all">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <div className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                  <Crown className="h-4 w-4" />
+                  Mais Popular
+                </div>
+              </div>
+              <CardHeader className="text-center pb-4 pt-8">
+                <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <MessageCircle className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle className="text-2xl">Plano Premium</CardTitle>
+                <div className="text-3xl font-bold text-primary mt-4">R$ 59,90</div>
+                <p className="text-muted-foreground text-sm">por mês</p>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3 mb-6">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm font-medium">Tudo do Plano Gratuito</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Importação direta do WhatsApp</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Sincronização automática de contatos</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Pesquisa e filtro avançado</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Seleção inteligente de contatos</span>
+                  </li>
+                </ul>
+                <Button className="w-full" onClick={() => navigate("/auth")}>
+                  Assinar Premium
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Use Cases */}
         <div className="mb-16">
