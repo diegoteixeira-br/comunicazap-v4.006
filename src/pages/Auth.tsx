@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -89,6 +89,14 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
       <div className="w-full max-w-md">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar à Página Inicial
+        </Button>
         <div className="bg-card rounded-lg shadow-lg p-8">
           <h1 className="text-3xl font-bold text-center mb-2">
             {isLogin ? 'Entrar' : 'Cadastrar'}
