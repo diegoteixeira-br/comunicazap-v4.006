@@ -55,18 +55,19 @@ serve(async (req) => {
 
     console.log('Fetching contacts from Evolution API for instance:', instance.instance_name);
 
-    // Fetch chats from Evolution API
+    // Fetch contacts from Evolution API
     const evolutionApiUrl = Deno.env.get('EVOLUTION_API_URL');
     const evolutionApiKey = Deno.env.get('EVOLUTION_API_KEY');
 
     const response = await fetch(
-      `${evolutionApiUrl}/chat/findChats/${instance.instance_name}`,
+      `${evolutionApiUrl}/chat/findContacts/${instance.instance_name}`,
       {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'apikey': evolutionApiKey || '',
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({}),
       }
     );
 
