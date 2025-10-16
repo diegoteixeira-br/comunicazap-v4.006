@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ConnectWhatsApp from "./pages/ConnectWhatsApp";
+import SelectImportMethod from "./pages/SelectImportMethod";
 import Upload from "./pages/Upload";
 import Results from "./pages/Results";
 import History from "./pages/History";
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/connect-whatsapp" element={<ProtectedRoute><ConnectWhatsApp /></ProtectedRoute>} />
+          <Route path="/select-import" element={<ProtectedRoute><SelectImportMethod /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
           <Route path="/results" element={<ProtectedRoute><Results /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />

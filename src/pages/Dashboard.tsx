@@ -274,7 +274,7 @@ const Dashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link to="/upload">
+              <Link to="/select-import">
                 <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -282,7 +282,7 @@ const Dashboard = () => {
                       Nova Campanha
                     </CardTitle>
                     <CardDescription>
-                      Envie uma planilha e crie uma nova campanha de mensagens
+                      Escolha entre upload de planilha ou importação do WhatsApp
                     </CardDescription>
                   </CardHeader>
                 </Card>
