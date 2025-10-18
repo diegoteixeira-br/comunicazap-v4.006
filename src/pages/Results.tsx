@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle, RefreshCw } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ClientData } from "./Upload";
@@ -57,6 +57,11 @@ const Results = () => {
   const [agreedToBestPractices, setAgreedToBestPractices] = useState(false);
   const [blockedContacts, setBlockedContacts] = useState<Set<string>>(new Set());
   const [loadingBlocked, setLoadingBlocked] = useState(true);
+
+  // Função para normalizar número de telefone (remover sufixo WhatsApp)
+  const normalizePhone = (phone: string): string => {
+    return phone.replace(/@s\.whatsapp\.net$/, '').replace(/@c\.us$/, '');
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -155,6 +160,7 @@ const Results = () => {
     if (!user) return;
 
     const fetchBlockedContacts = async () => {
+      setLoadingBlocked(true);
       try {
         const { data, error } = await supabase
           .from('blocked_contacts')
@@ -164,9 +170,10 @@ const Results = () => {
         if (error) throw error;
 
         if (data) {
-          const blockedSet = new Set(data.map(contact => contact.phone_number));
+          // Normalizar números ao carregar (remover @s.whatsapp.net)
+          const blockedSet = new Set(data.map(contact => normalizePhone(contact.phone_number)));
           setBlockedContacts(blockedSet);
-          console.log('📵 Contatos bloqueados carregados:', blockedSet.size);
+          console.log('📵 Contatos bloqueados carregados:', blockedSet.size, Array.from(blockedSet));
         }
       } catch (error) {
         console.error('Erro ao carregar contatos bloqueados:', error);
@@ -479,9 +486,9 @@ const Results = () => {
       return;
     }
 
-    // Filtrar contatos bloqueados
+    // Filtrar contatos bloqueados (normalizar antes de comparar)
     const availableClients = clients.filter(client => {
-      const phone = client["Telefone do Cliente"];
+      const phone = normalizePhone(client["Telefone do Cliente"]);
       return !blockedContacts.has(phone);
     });
 
@@ -723,8 +730,36 @@ const Results = () => {
 
   const successCount = Object.values(sendingStatus).filter(s => s === "success").length;
   const errorCount = Object.values(sendingStatus).filter(s => s === "error").length;
-  const availableClientsCount = clients.filter(c => !blockedContacts.has(c["Telefone do Cliente"])).length;
+  const availableClientsCount = clients.filter(c => !blockedContacts.has(normalizePhone(c["Telefone do Cliente"]))).length;
   const blockedClientsCount = clients.length - availableClientsCount;
+
+  // Função para recarregar contatos bloqueados manualmente
+  const handleRefreshBlocked = async () => {
+    if (!user) return;
+    
+    setLoadingBlocked(true);
+    try {
+      const { data, error } = await supabase
+        .from('blocked_contacts')
+        .select('phone_number')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data) {
+        const blockedSet = new Set(data.map(contact => normalizePhone(contact.phone_number)));
+        setBlockedContacts(blockedSet);
+        toast.success("Lista atualizada", {
+          description: `${blockedSet.size} contato(s) bloqueado(s)`
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar contatos bloqueados:', error);
+      toast.error("Erro ao atualizar lista");
+    } finally {
+      setLoadingBlocked(false);
+    }
+  };
 
   if (authLoading || loadingInstance) {
     return (
@@ -1289,17 +1324,29 @@ const Results = () => {
                       }
                     </CardDescription>
                   </div>
-                  {selectedClients.size > 0 && (
+                  <div className="flex gap-2 w-full sm:w-auto">
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
-                      onClick={handleDeleteSelected}
-                      className="gap-2 w-full sm:w-auto"
+                      onClick={handleRefreshBlocked}
+                      disabled={loadingBlocked}
+                      className="gap-2 flex-1 sm:flex-initial"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      Excluir ({selectedClients.size})
+                      <RefreshCw className={`h-4 w-4 ${loadingBlocked ? 'animate-spin' : ''}`} />
+                      Atualizar
                     </Button>
-                  )}
+                    {selectedClients.size > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDeleteSelected}
+                        className="gap-2 flex-1 sm:flex-initial"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Excluir ({selectedClients.size})
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="px-2 sm:px-6">
@@ -1322,7 +1369,7 @@ const Results = () => {
                     </TableHeader>
                     <TableBody>
                       {clients.map((client, index) => {
-                        const isBlocked = blockedContacts.has(client["Telefone do Cliente"]);
+                        const isBlocked = blockedContacts.has(normalizePhone(client["Telefone do Cliente"]));
                         return (
                           <TableRow key={index} className={isBlocked ? "opacity-50 bg-destructive/5" : ""}>
                             <TableCell>
