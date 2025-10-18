@@ -210,11 +210,6 @@ const Results = () => {
             toast.success("Envio concluído!", {
               description: `${campaign.sent_count} enviadas, ${campaign.failed_count} falharam`
             });
-
-            // Aguardar 3 segundos e redirecionar
-            setTimeout(() => {
-              navigate("/history");
-            }, 3000);
           }
         }
       } catch (error) {
