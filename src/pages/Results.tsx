@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ClientData } from "./Upload";
 import { 
@@ -50,6 +51,8 @@ const Results = () => {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newTemplateCategory, setNewTemplateCategory] = useState<MessageTemplate["category"]>("personalizado");
   const [selectedClients, setSelectedClients] = useState<Set<number>>(new Set());
+  const [showBestPractices, setShowBestPractices] = useState(false);
+  const [agreedToBestPractices, setAgreedToBestPractices] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -137,6 +140,10 @@ const Results = () => {
 
   useEffect(() => {
     setTemplates(getAllTemplates());
+    
+    // Verificar se o usuário já aceitou as boas práticas
+    const hasAgreed = localStorage.getItem("agreedToBestPractices");
+    setAgreedToBestPractices(hasAgreed === "true");
   }, []);
 
   // Polling e Realtime monitoring da campanha ativa
@@ -397,6 +404,12 @@ const Results = () => {
   };
 
   const handleSendAll = async () => {
+    // Verificar se o usuário aceitou as boas práticas
+    if (!agreedToBestPractices) {
+      setShowBestPractices(true);
+      return;
+    }
+
     if (!customMessage.trim() && !imageFile) {
       toast.error("Adicione conteúdo antes de enviar", {
         description: "Digite uma mensagem ou adicione uma imagem"
@@ -609,6 +622,15 @@ const Results = () => {
     }
   };
 
+  const handleAcceptBestPractices = () => {
+    localStorage.setItem("agreedToBestPractices", "true");
+    setAgreedToBestPractices(true);
+    setShowBestPractices(false);
+    
+    // Após aceitar, enviar as mensagens
+    handleSendAll();
+  };
+
   const successCount = Object.values(sendingStatus).filter(s => s === "success").length;
   const errorCount = Object.values(sendingStatus).filter(s => s === "error").length;
 
@@ -625,6 +647,114 @@ const Results = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+      {/* Best Practices Alert Dialog */}
+      <AlertDialog open={showBestPractices} onOpenChange={setShowBestPractices}>
+        <AlertDialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-2xl">
+              <AlertTriangle className="h-6 w-6 text-yellow-500" />
+              Boas Práticas: Proteja seu Número WhatsApp
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-left space-y-4 pt-4">
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <p className="font-semibold text-yellow-800 dark:text-yellow-200">
+                  ⚠️ O WhatsApp odeia spam e bane números que não seguem suas regras.
+                </p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-2">
+                  Nosso sistema é uma ferramenta poderosa, mas o uso responsável depende de você.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="border-l-4 border-primary pl-4">
+                  <h4 className="font-semibold text-lg mb-2">1. Aqueça seu Número (Regra de Ouro)</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Nunca conecte um número novo e envie centenas de mensagens. O WhatsApp vai te identificar como um robô e te banir.
+                  </p>
+                  <p className="text-sm">
+                    <strong>Como fazer:</strong> Nos primeiros dias, envie poucas mensagens (30-50 por dia) e tente conversar com quem responder. Aumente o volume gradualmente.
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-primary pl-4">
+                  <h4 className="font-semibold text-lg mb-2">2. Envie Apenas para Quem te Conhece</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    O WhatsApp monitora quantas pessoas te bloqueiam ou denunciam.
+                  </p>
+                  <p className="text-sm">
+                    <strong>NÃO FAÇA:</strong> Comprar listas de contatos ou enviar para quem nunca falou com você.
+                  </p>
+                  <p className="text-sm mt-1">
+                    <strong>FAÇA:</strong> Enviar para clientes, leads que se cadastraram ou pessoas que já conversaram com seu número.
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-primary pl-4">
+                  <h4 className="font-semibold text-lg mb-2">3. Use a Personalização (e Vá Além!)</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    O nosso sistema permite usar {"{nome}"} para personalizar. Isso é ótimo! Mas se você enviar o mesmo texto 200 vezes, o WhatsApp ainda pode te bloquear.
+                  </p>
+                  <p className="text-sm">
+                    <strong>Dica Pro:</strong> Tente variar sua mensagem. Crie 2 ou 3 textos diferentes e alterne entre eles durante a campanha.
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-primary pl-4">
+                  <h4 className="font-semibold text-lg mb-2">4. Dê Sempre uma Opção de Saída (Obrigatório!)</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    A melhor forma de evitar ser "Bloqueado" ou "Denunciado" é oferecer uma saída fácil para o usuário.
+                  </p>
+                  <p className="text-sm">
+                    <strong>Exemplo:</strong> Sempre termine sua mensagem com: <em>"Para não receber mais nossas novidades, basta responder SIM ou NÃO."</em>
+                  </p>
+                </div>
+
+                <div className="border-l-4 border-primary pl-4">
+                  <h4 className="font-semibold text-lg mb-2">5. Respeite o Delay (Seja Humano)</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Nosso sistema envia as mensagens com um intervalo de segurança. Não tente apressar o processo.
+                  </p>
+                  <p className="text-sm">
+                    Nenhum humano consegue enviar 100 mensagens em 1 minuto. O delay é seu amigo e protege seu número.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mt-4">
+                <p className="text-sm font-semibold text-red-800 dark:text-red-200">
+                  ⚠️ Lembre-se: O ComunicaZap é uma ferramenta de comunicação, não de spam. O banimento do seu número é de sua inteira responsabilidade.
+                </p>
+              </div>
+
+              <div className="flex items-start space-x-2 mt-6 p-4 bg-muted rounded-lg">
+                <Checkbox 
+                  id="agree-terms" 
+                  checked={agreedToBestPractices}
+                  onCheckedChange={(checked) => setAgreedToBestPractices(checked as boolean)}
+                />
+                <label
+                  htmlFor="agree-terms"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Li e concordo em seguir as boas práticas para proteger meu número WhatsApp
+                </label>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setShowBestPractices(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleAcceptBestPractices}
+              disabled={!agreedToBestPractices}
+            >
+              Concordo e Continuar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="container max-w-6xl mx-auto px-4 py-12">
         <div className="mb-8">
           <Button
