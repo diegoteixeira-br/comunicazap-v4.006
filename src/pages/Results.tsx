@@ -769,8 +769,8 @@ const Results = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="container max-w-6xl mx-auto px-4 py-12">
-        <div className="mb-8">
+      <div className="container max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => {
@@ -789,15 +789,15 @@ const Results = () => {
             Voltar ao Dashboard
           </Button>
           <div>
-            <h1 className="text-4xl font-bold mb-2">Clientes Carregados</h1>
+            <h1 className="text-3xl font-bold mb-2">Nova Campanha</h1>
             <p className="text-muted-foreground">
-              {clients.length} cliente(s) encontrado(s)
+              {clients.length} cliente(s) carregado(s)
             </p>
           </div>
           
           {whatsappInstance && (
-            <Card className="mb-6 bg-primary/5 border-primary/20">
-              <CardContent className="pt-4">
+            <Card className="mt-4 bg-primary/5 border-primary/20">
+              <CardContent className="py-3">
                 <div className="flex items-center gap-3">
                   <Smartphone className="h-5 w-5 text-primary" />
                   <div>
@@ -812,254 +812,285 @@ const Results = () => {
           )}
         </div>
 
-        {/* Templates Section */}
-        <Card className="mb-6 shadow-elevated">
-          <CardHeader className="cursor-pointer" onClick={() => setShowTemplates(!showTemplates)}>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  📚 Meus Templates
-                </CardTitle>
-                <CardDescription>
-                  Use templates prontos ou crie seus próprios
-                </CardDescription>
+        {/* TWO COLUMN LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* LEFT COLUMN: Message Composition */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+                1
               </div>
-              <Button variant="ghost" size="icon">
-                {showTemplates ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </Button>
+              <h2 className="text-xl font-semibold">Escreva sua Mensagem</h2>
             </div>
-          </CardHeader>
-          
-          {showTemplates && (
-            <CardContent>
-              <Tabs defaultValue="todos" className="w-full">
-                <TabsList className="w-full justify-start flex-wrap h-auto">
-                  <TabsTrigger value="todos">Todos ({templates.length})</TabsTrigger>
-                  <TabsTrigger value="opt-in">✅ Opt-in</TabsTrigger>
-                  <TabsTrigger value="saudacao">👋 Saudação</TabsTrigger>
-                  <TabsTrigger value="lembrete">📅 Lembrete</TabsTrigger>
-                  <TabsTrigger value="promocao">🎁 Promoção</TabsTrigger>
-                  <TabsTrigger value="agradecimento">💚 Agradecimento</TabsTrigger>
-                  <TabsTrigger value="personalizado">✏️ Personalizados</TabsTrigger>
-                </TabsList>
 
-                {["todos", "opt-in", "saudacao", "lembrete", "promocao", "agradecimento", "personalizado"].map(category => (
-                  <TabsContent key={category} value={category} className="mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {getFilteredTemplates(category).length > 0 ? (
-                        getFilteredTemplates(category).map(template => (
-                          <Card key={template.id} className="hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-2 flex-1">
-                                  <span className="text-2xl">{getCategoryIcon(template.category)}</span>
-                                  <CardTitle className="text-base line-clamp-1">{template.title}</CardTitle>
-                                </div>
-                                {template.isCustom && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 flex-shrink-0"
-                                    onClick={() => handleDeleteTemplate(template.id, template.title)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                                )}
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              <p className="text-sm text-muted-foreground line-clamp-3">
-                                {template.message}
-                              </p>
-                              <Button
-                                onClick={() => handleUseTemplate(template)}
-                                className="w-full"
-                                variant="secondary"
-                                size="sm"
-                              >
-                                Usar Template
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))
-                      ) : (
-                        <div className="col-span-full text-center py-8 text-muted-foreground">
-                          Nenhum template nesta categoria
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </CardContent>
-          )}
-        </Card>
-
-        {/* Message Editor Section */}
-        <Card className="mb-6 shadow-elevated">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Mensagem Personalizada com Variações
-            </CardTitle>
-            <CardDescription>
-              Crie até 3 variações de mensagem para parecer mais humano. O sistema alternará entre elas automaticamente.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Abas de Variações */}
-            <Tabs value={activeVariationTab.toString()} onValueChange={(v) => setActiveVariationTab(Number(v))}>
-              <TabsList className="w-full">
-                <TabsTrigger value="0" className="flex-1">
-                  Variação 1
-                  {messageVariations[0].trim() && " ✓"}
-                </TabsTrigger>
-                <TabsTrigger value="1" className="flex-1">
-                  Variação 2
-                  {messageVariations[1].trim() && " ✓"}
-                </TabsTrigger>
-                <TabsTrigger value="2" className="flex-1">
-                  Variação 3
-                  {messageVariations[2].trim() && " ✓"}
-                </TabsTrigger>
-              </TabsList>
-
-              {[0, 1, 2].map((index) => (
-                <TabsContent key={index} value={index.toString()} className="mt-4">
+            {/* Templates Section */}
+            <Card className="shadow-elevated">
+              <CardHeader className="cursor-pointer" onClick={() => setShowTemplates(!showTemplates)}>
+                <div className="flex items-center justify-between">
                   <div>
-                    <Textarea
-                      placeholder={`Olá {nome}, tudo bem? (Variação ${index + 1})`}
-                      value={messageVariations[index]}
-                      onChange={(e) => {
-                        const newVariations = [...messageVariations];
-                        newVariations[index] = e.target.value.slice(0, 1000);
-                        setMessageVariations(newVariations);
-                      }}
-                      className="min-h-[120px] resize-none"
-                    />
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        {index === 0 && "Obrigatória"} {index > 0 && "Opcional"}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {messageVariations[index].length}/1000
-                      </span>
-                    </div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      📚 Meus Templates
+                    </CardTitle>
+                    <CardDescription>
+                      Use templates prontos ou crie seus próprios
+                    </CardDescription>
                   </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-
-            <Card className="bg-muted/30 border-primary/20">
-              <CardContent className="pt-4">
-                <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="space-y-1 flex-1">
-                    <p className="text-sm font-medium">💡 Dica Anti-Banimento:</p>
-                    <p className="text-xs text-muted-foreground">
-                      Crie variações diferentes da mesma mensagem. O sistema alternará entre elas (Variação 1 → Cliente 1, Variação 2 → Cliente 2, etc.) para evitar que o WhatsApp detecte spam.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Image Upload Section */}
-            <div className="space-y-2">
-              <Label htmlFor="image-upload" className="flex items-center gap-2">
-                <ImagePlus className="h-4 w-4" />
-                Adicionar Imagem (Opcional)
-              </Label>
-              {!imagePreview ? (
-                <div className="relative">
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Formatos aceitos: JPG, PNG, WEBP. Tamanho máximo: 5MB
-                  </p>
-                </div>
-              ) : (
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="max-w-xs max-h-48 rounded-md border"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-8 w-8"
-                    onClick={handleRemoveImage}
-                  >
-                    <X className="h-4 w-4" />
+                  <Button variant="ghost" size="icon">
+                    {showTemplates ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </Button>
                 </div>
-              )}
-            </div>
+              </CardHeader>
+              
+              {showTemplates && (
+                <CardContent>
+                  <Tabs defaultValue="todos" className="w-full">
+                    <TabsList className="w-full justify-start flex-wrap h-auto">
+                      <TabsTrigger value="todos">Todos ({templates.length})</TabsTrigger>
+                      <TabsTrigger value="opt-in">✅ Opt-in</TabsTrigger>
+                      <TabsTrigger value="saudacao">👋 Saudação</TabsTrigger>
+                      <TabsTrigger value="lembrete">📅 Lembrete</TabsTrigger>
+                      <TabsTrigger value="promocao">🎁 Promoção</TabsTrigger>
+                      <TabsTrigger value="agradecimento">💚 Agradecimento</TabsTrigger>
+                      <TabsTrigger value="personalizado">✏️ Personalizados</TabsTrigger>
+                    </TabsList>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setShowSaveDialog(true)}
-                variant="outline"
-                disabled={!messageVariations[activeVariationTab].trim()}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Salvar como Template
-              </Button>
-              <Button
-                onClick={handleClearMessage}
-                variant="outline"
-                disabled={!messageVariations[activeVariationTab].trim()}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Limpar Variação
-              </Button>
-            </div>
-
-            {messageVariations[activeVariationTab] && clients.length > 0 && (
-              <Card className="bg-muted/30 border-primary/20">
-                <CardContent className="pt-4">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">📋 Preview da Variação {activeVariationTab + 1} com primeiro cliente:</p>
-                  <p className="text-sm">
-                    {messageVariations[activeVariationTab]
-                      .replace(/{nome}/g, clients[0]["Nome do Cliente"])
-                      .replace(/{telefone}/g, clients[0]["Telefone do Cliente"])}
-                  </p>
+                    {["todos", "opt-in", "saudacao", "lembrete", "promocao", "agradecimento", "personalizado"].map(category => (
+                      <TabsContent key={category} value={category} className="mt-4">
+                        <div className="grid grid-cols-1 gap-3">
+                          {getFilteredTemplates(category).length > 0 ? (
+                            getFilteredTemplates(category).map(template => (
+                              <Card key={template.id} className="hover:shadow-md transition-shadow">
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <span className="text-xl">{getCategoryIcon(template.category)}</span>
+                                      <CardTitle className="text-sm line-clamp-1">{template.title}</CardTitle>
+                                    </div>
+                                    {template.isCustom && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 flex-shrink-0"
+                                        onClick={() => handleDeleteTemplate(template.id, template.title)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {template.message}
+                                  </p>
+                                  <Button
+                                    onClick={() => handleUseTemplate(template)}
+                                    className="w-full"
+                                    variant="secondary"
+                                    size="sm"
+                                  >
+                                    Usar Template
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            ))
+                          ) : (
+                            <div className="text-center py-8 text-muted-foreground">
+                              Nenhum template nesta categoria
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
                 </CardContent>
-              </Card>
-            )}
+              )}
+            </Card>
 
-            <Card className="bg-muted/50 border-primary/20">
-              <CardContent className="pt-4">
-                <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                  <div className="space-y-2 flex-1">
-                    <p className="text-sm font-medium">Códigos disponíveis:</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-secondary/80"
-                        onClick={() => setCustomMessage(prev => prev + "{nome}")}
-                      >
-                        {"{nome}"}
-                      </Badge>
+            {/* Message Variations Section */}
+            <Card className="shadow-elevated">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Send className="h-5 w-5" />
+                  Mensagem Personalizada com Variações
+                </CardTitle>
+                <CardDescription>
+                  Crie até 3 variações de mensagem para parecer mais humano
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Abas de Variações */}
+                <Tabs value={activeVariationTab.toString()} onValueChange={(v) => setActiveVariationTab(Number(v))}>
+                  <TabsList className="w-full grid grid-cols-3">
+                    <TabsTrigger value="0">
+                      Variação 1
+                      {messageVariations[0].trim() && " ✓"}
+                    </TabsTrigger>
+                    <TabsTrigger value="1">
+                      Variação 2
+                      {messageVariations[1].trim() && " ✓"}
+                    </TabsTrigger>
+                    <TabsTrigger value="2">
+                      Variação 3
+                      {messageVariations[2].trim() && " ✓"}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {[0, 1, 2].map((index) => (
+                    <TabsContent key={index} value={index.toString()} className="mt-4">
+                      <div>
+                        <Textarea
+                          placeholder={`Olá {nome}, tudo bem? (Variação ${index + 1})`}
+                          value={messageVariations[index]}
+                          onChange={(e) => {
+                            const newVariations = [...messageVariations];
+                            newVariations[index] = e.target.value.slice(0, 1000);
+                            setMessageVariations(newVariations);
+                          }}
+                          className="min-h-[120px] resize-none"
+                        />
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {index === 0 && "Obrigatória"} {index > 0 && "Opcional"}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {messageVariations[index].length}/1000
+                          </span>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+
+                {/* Anti-Ban Tip */}
+                <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                      <div className="space-y-1 flex-1">
+                        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">💡 Dica Anti-Banimento:</p>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                          Crie variações diferentes da mesma mensagem. O sistema alternará entre elas para evitar que o WhatsApp detecte spam.
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Clique nos códigos para adicionar à mensagem
-                    </p>
-                  </div>
+                  </CardContent>
+                </Card>
+
+                {/* Image Upload Section */}
+                <div className="space-y-2">
+                  <Label htmlFor="image-upload" className="flex items-center gap-2">
+                    <ImagePlus className="h-4 w-4" />
+                    Adicionar Imagem (Opcional)
+                  </Label>
+                  {!imagePreview ? (
+                    <div className="relative">
+                      <Input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Formatos aceitos: JPG, PNG, WEBP. Tamanho máximo: 5MB
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative inline-block">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-w-full max-h-48 rounded-md border"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-8 w-8"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
+
+                {/* Codes Section */}
+                <Card className="bg-muted/50 border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <p className="text-sm font-medium">Códigos disponíveis:</p>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-secondary/80"
+                            onClick={() => {
+                              const newVariations = [...messageVariations];
+                              newVariations[activeVariationTab] += "{nome}";
+                              setMessageVariations(newVariations);
+                            }}
+                          >
+                            {"{nome}"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Clique nos códigos para adicionar à mensagem
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setShowSaveDialog(true)}
+                    variant="outline"
+                    disabled={!messageVariations[activeVariationTab].trim()}
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Salvar como Template
+                  </Button>
+                  <Button
+                    onClick={handleClearMessage}
+                    variant="outline"
+                    disabled={!messageVariations[activeVariationTab].trim()}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Limpar Variação
+                  </Button>
+                </div>
+
+                {/* Preview */}
+                {messageVariations[activeVariationTab] && clients.length > 0 && (
+                  <Card className="bg-muted/30 border-primary/20">
+                    <CardContent className="pt-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">📋 Preview da Variação {activeVariationTab + 1}:</p>
+                      <p className="text-sm">
+                        {messageVariations[activeVariationTab]
+                          .replace(/{nome}/g, clients[0]["Nome do Cliente"])
+                          .replace(/{telefone}/g, clients[0]["Telefone do Cliente"])}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
+          </div>
+
+          {/* RIGHT COLUMN: Client Selection */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
+                2
+              </div>
+              <h2 className="text-xl font-semibold">Selecione os Destinatários</h2>
+            </div>
 
             {/* Progress Tracking */}
             {isSending && (
-              <Card className="bg-primary/5 border-primary/20">
+              <Card className="bg-primary/5 border-primary/20 shadow-elevated">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
@@ -1098,7 +1129,6 @@ const Results = () => {
                     </div>
                   </div>
 
-                  {/* Real-time Logs */}
                   {messageLogs.length > 0 && (
                     <div className="max-h-48 overflow-y-auto space-y-1 bg-muted/30 rounded-md p-3">
                       {messageLogs.slice(-10).reverse().map((log) => (
@@ -1123,19 +1153,120 @@ const Results = () => {
               </Card>
             )}
 
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSendAll}
-                size="lg"
-                variant="hero"
-                disabled={isSending || Object.values(sendingStatus).some(s => s === "sending")}
-              >
-                <Send className="h-5 w-5 mr-2" />
-                Enviar para Todos
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Stats */}
+            {(successCount > 0 || errorCount > 0) && (
+              <div className="grid grid-cols-2 gap-4">
+                {successCount > 0 && (
+                  <Card className="border-success/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="h-6 w-6 text-success" />
+                        <div>
+                          <p className="text-xl font-bold">{successCount}</p>
+                          <p className="text-xs text-muted-foreground">Enviados</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {errorCount > 0 && (
+                  <Card className="border-destructive/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-3">
+                        <AlertCircle className="h-6 w-6 text-destructive" />
+                        <div>
+                          <p className="text-xl font-bold">{errorCount}</p>
+                          <p className="text-xs text-muted-foreground">Com erro</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Client List */}
+            <Card className="shadow-elevated">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Lista de Clientes</CardTitle>
+                    <CardDescription>
+                      Marque as checkboxes para excluir clientes indesejados
+                    </CardDescription>
+                  </div>
+                  {selectedClients.size > 0 && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteSelected}
+                      className="gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir ({selectedClients.size})
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border max-h-[600px] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-background z-10">
+                      <TableRow>
+                        <TableHead className="w-[50px]">
+                          <Checkbox
+                            checked={selectedClients.size === clients.length && clients.length > 0}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
+                        <TableHead className="w-[50px]">#</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Telefone</TableHead>
+                        <TableHead className="w-[100px]">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clients.map((client, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedClients.has(index)}
+                              onCheckedChange={() => handleSelectClient(index)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">{index + 1}</TableCell>
+                          <TableCell className="font-medium">
+                            {client["Nome do Cliente"]}
+                          </TableCell>
+                          <TableCell className="text-sm">{client["Telefone do Cliente"]}</TableCell>
+                          <TableCell>
+                            {getStatusBadge(sendingStatus[client["Telefone do Cliente"]] || "idle")}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Send Button at Bottom */}
+                <div className="mt-6 flex justify-end">
+                  <Button
+                    onClick={handleSendAll}
+                    size="lg"
+                    className="w-full sm:w-auto"
+                    disabled={isSending || Object.values(sendingStatus).some(s => s === "sending")}
+                  >
+                    <Send className="h-5 w-5 mr-2" />
+                    {selectedClients.size > 0 && selectedClients.size < clients.length
+                      ? `Enviar para Todos Não Selecionados (${clients.length - selectedClients.size})`
+                      : `Enviar para Todos (${clients.length})`
+                    }
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         {/* Save Template Dialog */}
         <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
@@ -1179,7 +1310,7 @@ const Results = () => {
               <div className="space-y-2">
                 <Label>Preview da mensagem:</Label>
                 <div className="p-3 rounded-md bg-muted text-sm max-h-32 overflow-y-auto">
-                  {customMessage || "Nenhuma mensagem para visualizar"}
+                  {messageVariations[activeVariationTab] || "Nenhuma mensagem para visualizar"}
                 </div>
               </div>
             </div>
@@ -1194,124 +1325,6 @@ const Results = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {(successCount > 0 || errorCount > 0) && (
-          <div className="mb-6 flex gap-4">
-            {successCount > 0 && (
-              <Card className="flex-1 border-success/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-8 w-8 text-success" />
-                    <div>
-                      <p className="text-2xl font-bold">{successCount}</p>
-                      <p className="text-sm text-muted-foreground">Enviados com sucesso</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {errorCount > 0 && (
-              <Card className="flex-1 border-destructive/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="h-8 w-8 text-destructive" />
-                    <div>
-                      <p className="text-2xl font-bold">{errorCount}</p>
-                      <p className="text-sm text-muted-foreground">Com erro</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        <Card className="shadow-elevated">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Lista de Clientes</CardTitle>
-                <CardDescription>
-                  Selecione clientes para excluir ou clique em "Enviar" para disparar mensagens
-                </CardDescription>
-              </div>
-              {selectedClients.size > 0 && (
-                <Button
-                  variant="destructive"
-                  onClick={handleDeleteSelected}
-                  className="gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Excluir Selecionados ({selectedClients.size})
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">
-                      <Checkbox
-                        checked={selectedClients.size === clients.length && clients.length > 0}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead className="w-[50px]">#</TableHead>
-                    <TableHead>Nome do Cliente</TableHead>
-                    <TableHead>Telefone do Cliente</TableHead>
-                    <TableHead className="w-[150px]">Status</TableHead>
-                    <TableHead className="w-[120px] text-right">Ação</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clients.map((client, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedClients.has(index)}
-                          onCheckedChange={() => handleSelectClient(index)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{index + 1}</TableCell>
-                      <TableCell className="font-medium">
-                        {client["Nome do Cliente"]}
-                      </TableCell>
-                      <TableCell>{client["Telefone do Cliente"]}</TableCell>
-                       <TableCell>
-                         {getStatusBadge(sendingStatus[client["Telefone do Cliente"]] || "idle")}
-                       </TableCell>
-                       <TableCell className="text-right">
-                         <Button
-                           size="sm"
-                           onClick={() => handleSend(client, index)}
-                           disabled={
-                             isSending ||
-                             sendingStatus[client["Telefone do Cliente"]] === "sending" ||
-                             sendingStatus[client["Telefone do Cliente"]] === "success"
-                           }
-                         >
-                           {sendingStatus[client["Telefone do Cliente"]] === "success" ? (
-                             <>
-                               <CheckCircle className="h-4 w-4 mr-1" />
-                               Enviado
-                             </>
-                           ) : (
-                             <>
-                               <Send className="h-4 w-4 mr-1" />
-                               Enviar
-                             </>
-                           )}
-                         </Button>
-                       </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
