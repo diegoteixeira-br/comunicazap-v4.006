@@ -191,9 +191,38 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setSubscriptionStatus(data);
+      setSubscriptionStatus(data as SubscriptionStatus);
     } catch (error) {
       console.error('Erro ao verificar assinatura:', error);
+      // Fallback seguro: consultar diretamente o status no banco
+      try {
+        const { data: row } = await supabase
+          .from('user_subscriptions')
+          .select('status, trial_active, trial_ends_at')
+          .eq('user_id', user?.id)
+          .maybeSingle();
+
+        if (row) {
+          const trialActive = !!row.trial_active && !!row.trial_ends_at && new Date(row.trial_ends_at) > new Date();
+          const trialDaysLeft = trialActive
+            ? Math.ceil((new Date(row.trial_ends_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+            : 0;
+          const subscribed = row.status === 'active';
+          setSubscriptionStatus({
+            subscribed,
+            trial_active: trialActive,
+            trial_days_left: trialDaysLeft,
+            has_access: subscribed || trialActive,
+            status: row.status || (trialActive ? 'trial' : 'inactive')
+          });
+        } else {
+          // Sem linha ainda: não bloquear a UI; permitir usuário continuar e tentar novamente depois
+          setSubscriptionStatus(null);
+        }
+      } catch (fallbackError) {
+        console.warn('Fallback de assinatura falhou:', fallbackError);
+        setSubscriptionStatus(null);
+      }
     } finally {
       setCheckingSubscription(false);
     }
@@ -288,7 +317,7 @@ const Dashboard = () => {
   };
 
   const handleNewCampaign = () => {
-    if (!subscriptionStatus?.has_access) {
+    if (subscriptionStatus && !subscriptionStatus.has_access) {
       toast({
         title: "Acesso restrito",
         description: "Assine para continuar usando a importação do WhatsApp.",
@@ -546,9 +575,11 @@ const Dashboard = () => {
               <Card className={`border-2 ${
                 checkingSubscription
                   ? 'border-border'
-                  : subscriptionStatus?.subscribed 
+                  : !subscriptionStatus
+                  ? 'border-border'
+                  : subscriptionStatus.subscribed 
                   ? 'border-yellow-500/50 bg-gradient-to-br from-yellow-500/5 to-amber-500/5' 
-                  : subscriptionStatus?.trial_active 
+                  : subscriptionStatus.trial_active 
                   ? 'border-blue-500/50 bg-gradient-to-br from-blue-500/5 to-cyan-500/5'
                   : 'border-red-500/50 bg-gradient-to-br from-red-500/5 to-orange-500/5'
               }`}>
@@ -579,9 +610,11 @@ const Dashboard = () => {
                   <CardDescription>
                     {checkingSubscription
                       ? 'Carregando informações de assinatura...'
-                      : subscriptionStatus?.subscribed 
+                      : !subscriptionStatus
+                      ? 'Não foi possível verificar agora. Tentaremos novamente em instantes.'
+                      : subscriptionStatus.subscribed 
                       ? 'Você tem acesso completo à importação do WhatsApp' 
-                      : subscriptionStatus?.trial_active
+                      : subscriptionStatus.trial_active
                       ? `Restam ${subscriptionStatus.trial_days_left} dia${subscriptionStatus.trial_days_left !== 1 ? 's' : ''} de teste`
                       : 'Seu teste acabou. Assine para continuar usando.'
                     }
