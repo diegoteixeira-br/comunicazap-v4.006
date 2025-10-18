@@ -36,6 +36,12 @@ const Results = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   
+  // Campaign tracking
+  const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
+  const [campaignProgress, setCampaignProgress] = useState({ sent: 0, failed: 0, total: 0 });
+  const [isSending, setIsSending] = useState(false);
+  const [messageLogs, setMessageLogs] = useState<any[]>([]);
+  
   // Template states
   const [showTemplates, setShowTemplates] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -132,6 +138,115 @@ const Results = () => {
   useEffect(() => {
     setTemplates(getAllTemplates());
   }, []);
+
+  // Realtime monitoring da campanha ativa
+  useEffect(() => {
+    if (!activeCampaignId) return;
+
+    console.log('📡 Iniciando monitoramento da campanha:', activeCampaignId);
+
+    // Subscribe para atualizações dos logs
+    const logsChannel = supabase
+      .channel('message-logs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'message_logs',
+          filter: `campaign_id=eq.${activeCampaignId}`
+        },
+        (payload) => {
+          console.log('📨 Log atualizado:', payload);
+          
+          // Atualizar lista de logs
+          if (payload.eventType === 'INSERT') {
+            setMessageLogs(prev => [...prev, payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            setMessageLogs(prev => 
+              prev.map(log => log.id === payload.new.id ? payload.new : log)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Subscribe para atualizações da campanha
+    const campaignChannel = supabase
+      .channel('campaign-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'message_campaigns',
+          filter: `id=eq.${activeCampaignId}`
+        },
+        (payload) => {
+          console.log('📊 Campanha atualizada:', payload);
+          const campaign = payload.new;
+          
+          setCampaignProgress({
+            sent: campaign.sent_count || 0,
+            failed: campaign.failed_count || 0,
+            total: campaign.total_contacts || 0
+          });
+
+          // Se campanha completada, liberar navegação
+          if (campaign.status === 'completed') {
+            console.log('✅ Campanha completada!');
+            setIsSending(false);
+            
+            toast.success("Envio concluído!", {
+              description: `${campaign.sent_count} enviadas, ${campaign.failed_count} falharam`
+            });
+
+            // Aguardar 3 segundos e redirecionar
+            setTimeout(() => {
+              navigate("/history");
+            }, 3000);
+          }
+        }
+      )
+      .subscribe();
+
+    // Fetch inicial dos logs
+    const fetchLogs = async () => {
+      const { data } = await supabase
+        .from('message_logs')
+        .select('*')
+        .eq('campaign_id', activeCampaignId)
+        .order('created_at', { ascending: true });
+      
+      if (data) {
+        setMessageLogs(data);
+      }
+    };
+
+    fetchLogs();
+
+    return () => {
+      supabase.removeChannel(logsChannel);
+      supabase.removeChannel(campaignChannel);
+    };
+  }, [activeCampaignId, navigate]);
+
+  // Bloquear navegação durante envio
+  useEffect(() => {
+    if (!isSending) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isSending]);
 
   const replaceVariables = (template: string, client: ClientData): string => {
     return template
@@ -262,7 +377,11 @@ const Results = () => {
 
     const campaignName = `Envio em massa - ${new Date().toLocaleString('pt-BR')}`;
 
-    toast.info("Enviando mensagens...", {
+    setIsSending(true);
+    setCampaignProgress({ sent: 0, failed: 0, total: clients.length });
+    setMessageLogs([]);
+
+    toast.info("Iniciando envio...", {
       description: "Processando todos os clientes"
     });
 
@@ -297,26 +416,18 @@ const Results = () => {
       if (error) throw error;
 
       if (data?.success) {
-        // Atualizar status de todos
-        const newStatus: any = {};
-        clients.forEach((_, i) => {
-          newStatus[i] = "success";
+        // Ativar monitoramento em tempo real
+        setActiveCampaignId(data.campaign);
+        
+        toast.info("Enviando mensagens...", {
+          description: "Acompanhe o progresso abaixo"
         });
-        setSendingStatus(newStatus);
-
-        toast.success("Envio concluído!", {
-          description: `${data.successCount} mensagens enviadas com sucesso`
-        });
-
-        // Redirecionar para histórico após 2 segundos
-        setTimeout(() => {
-          navigate("/history");
-        }, 2000);
       } else {
         throw new Error(data?.error || 'Falha no envio em massa');
       }
     } catch (error: any) {
       console.error("❌ Erro no envio em massa:", error);
+      setIsSending(false);
       toast.error("Erro ao enviar mensagens", {
         description: error.message || "Tente novamente"
       });
@@ -478,8 +589,17 @@ const Results = () => {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => {
+              if (isSending) {
+                toast.error("Aguarde o envio concluir", {
+                  description: "Não é possível sair durante o envio"
+                });
+                return;
+              }
+              navigate("/dashboard");
+            }}
             className="mb-4"
+            disabled={isSending}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar ao Dashboard
@@ -710,12 +830,78 @@ const Results = () => {
               </CardContent>
             </Card>
 
+            {/* Progress Tracking */}
+            {isSending && (
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                    Enviando Mensagens
+                  </CardTitle>
+                  <CardDescription>
+                    Por favor, aguarde. Não feche esta página.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Progresso</span>
+                      <span className="font-medium">
+                        {campaignProgress.sent + campaignProgress.failed} / {campaignProgress.total}
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="bg-primary h-full transition-all duration-300 rounded-full"
+                        style={{ 
+                          width: `${campaignProgress.total > 0 ? ((campaignProgress.sent + campaignProgress.failed) / campaignProgress.total) * 100 : 0}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span>Enviadas: {campaignProgress.sent}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <span>Falharam: {campaignProgress.failed}</span>
+                    </div>
+                  </div>
+
+                  {/* Real-time Logs */}
+                  {messageLogs.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto space-y-1 bg-muted/30 rounded-md p-3">
+                      {messageLogs.slice(-10).reverse().map((log) => (
+                        <div key={log.id} className="flex items-center gap-2 text-xs">
+                          {log.status === 'sent' && (
+                            <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                          )}
+                          {log.status === 'failed' && (
+                            <AlertCircle className="h-3 w-3 text-destructive flex-shrink-0" />
+                          )}
+                          {log.status === 'pending' && (
+                            <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                          )}
+                          <span className="truncate">
+                            {log.client_name} - {log.client_phone}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex justify-end">
               <Button
                 onClick={handleSendAll}
                 size="lg"
                 variant="hero"
-                disabled={Object.values(sendingStatus).some(s => s === "sending")}
+                disabled={isSending || Object.values(sendingStatus).some(s => s === "sending")}
               >
                 <Send className="h-5 w-5 mr-2" />
                 Enviar para Todos
