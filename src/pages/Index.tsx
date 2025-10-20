@@ -17,6 +17,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import logo from "@/assets/comunicazap-logo.png";
+import { Footer } from "@/components/Footer";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -432,6 +433,7 @@ const Index = () => {
           </Button>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
