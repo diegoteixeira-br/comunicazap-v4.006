@@ -10,8 +10,8 @@ export const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">DT Soluções Digital</h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Uma plataforma de automação inteligente para suas campanhas de marketing no WhatsApp. 
-              Conecte-se com seus clientes de forma eficaz e profissional.
+              Uma plataforma de automação inteligente para suas campanhas de marketing no WhatsApp. Conecte-se com seus
+              clientes de forma eficaz e profissional.
             </p>
           </div>
 
@@ -35,22 +35,25 @@ export const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">Informações</h3>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <p><strong>Razão Social:</strong> [Razão Social]</p>
-              <p><strong>CNPJ:</strong> [00.000.000/0000-00]</p>
-              <p><strong>Endereço:</strong> [Endereço Comercial Completo]</p>
-              <a 
-                href="mailto:contato@dtsolucoesdigital.com.br" 
+              <p>
+                <strong>Razão Social:</strong> [Razão Social]
+              </p>
+              <p>
+                <strong>CNPJ:</strong> [00.000.000/0000-00]
+              </p>
+              <p>
+                <strong>Endereço:</strong> [Endereço Comercial Completo]
+              </p>
+              <a
+                href="mailto:contato@dtsolucoesdigital.com.br"
                 className="flex items-center gap-2 hover:text-primary transition-colors"
               >
                 <Mail className="h-4 w-4" />
                 contato@dtsolucoesdigital.com.br
               </a>
-              <a 
-                href="tel:[telefone]" 
-                className="flex items-center gap-2 hover:text-primary transition-colors"
-              >
+              <a href="tel:[telefone]" className="flex items-center gap-2 hover:text-primary transition-colors">
                 <Phone className="h-4 w-4" />
-                [Telefone de Suporte]
+                65993025105
               </a>
             </div>
           </div>
@@ -59,9 +62,7 @@ export const Footer = () => {
         {/* Linha Inferior */}
         <div className="border-t pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              © 2025 DT Soluções Digital. Todos os direitos reservados.
-            </p>
+            <p className="text-sm text-muted-foreground">© 2025 DT Soluções Digital. Todos os direitos reservados.</p>
             <div className="flex flex-wrap justify-center gap-4 text-sm">
               <Link to="/terms" className="text-muted-foreground hover:text-primary transition-colors">
                 Termos de Serviço
