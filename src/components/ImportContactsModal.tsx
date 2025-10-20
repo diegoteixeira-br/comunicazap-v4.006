@@ -152,16 +152,17 @@ export const ImportContactsModal = ({ open, onOpenChange, onImport }: ImportCont
                   placeholder="Quantidade"
                   value={randomQuantity}
                   onChange={(e) => setRandomQuantity(e.target.value)}
-                  className="w-32"
+                  className="w-20 sm:w-32"
                   min="1"
                 />
                 <Button
                   variant="outline"
                   onClick={loadRandomContacts}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm px-2 sm:px-4"
                 >
-                  <Shuffle className="h-4 w-4 mr-2" />
-                  Carregar {randomQuantity} Contatos Aleatórios
+                  <Shuffle className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <span className="hidden sm:inline">Carregar {randomQuantity} Contatos Aleatórios</span>
+                  <span className="sm:hidden">Carregar {randomQuantity} Contatos</span>
                 </Button>
               </div>
             </div>
@@ -201,7 +202,7 @@ export const ImportContactsModal = ({ open, onOpenChange, onImport }: ImportCont
             </div>
 
             {/* Lista de Contatos */}
-            <ScrollArea className="h-[400px] border rounded-lg">
+            <ScrollArea className="h-[300px] border rounded-lg">
               <div className="p-2">
                 {filteredContacts.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
