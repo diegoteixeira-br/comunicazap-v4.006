@@ -42,7 +42,7 @@ export const Footer = () => {
                 <strong>CNPJ:</strong> [00.000.000/0000-00]
               </p>
               <p>
-                <strong>Endereço:</strong> [Endereço Comercial Completo]
+                <strong>Endereço:</strong> Rua F. V de Azevedo, 07 Bairro: Cohab Nova Cidade: Cáceres-MT
               </p>
               <a
                 href="mailto:contato@dtsolucoesdigital.com.br"
