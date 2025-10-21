@@ -41,6 +41,11 @@ const Index = () => {
       description: "Importe contatos diretamente do seu WhatsApp de forma rápida e prática",
     },
     {
+      icon: Upload,
+      title: "Upload de Planilha",
+      description: "Envie sua lista de contatos através de arquivos CSV, XLSX ou XLS",
+    },
+    {
       icon: Send,
       title: "Envio Inteligente",
       description: "Mensagens enviadas com delay de 1 segundo entre cada contato para maior agilidade",
@@ -191,8 +196,8 @@ const Index = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Importe seus Contatos</h3>
                   <p className="text-sm text-muted-foreground">
-                    Importe contatos diretamente do seu WhatsApp conectado. Pesquise, filtre e selecione os contatos que
-                    deseja enviar mensagens.
+                    Escolha entre duas opções: importe contatos diretamente do seu WhatsApp conectado ou faça upload 
+                    de uma planilha CSV/XLSX com sua lista de contatos.
                   </p>
                 </div>
               </div>
