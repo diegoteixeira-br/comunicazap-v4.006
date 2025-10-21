@@ -43,7 +43,7 @@ const Index = () => {
     {
       icon: Send,
       title: "Envio Inteligente",
-      description: "Mensagens enviadas com delay de 3 segundos entre cada contato para segurança",
+      description: "Mensagens enviadas com delay de 1 segundo entre cada contato para maior agilidade",
     },
   ];
 
@@ -204,7 +204,7 @@ const Index = () => {
                   <h3 className="font-semibold mb-1">Personalize e Dispare</h3>
                   <p className="text-sm text-muted-foreground">
                     Escreva sua mensagem personalizada, revise os contatos validados e inicie o envio automático com
-                    delay inteligente de 3 segundos.
+                    delay inteligente de 1 segundo.
                   </p>
                 </div>
               </div>
@@ -379,7 +379,7 @@ const Index = () => {
                     Delay Inteligente
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Intervalo de 3 segundos entre mensagens para evitar bloqueios
+                    Intervalo de 1 segundo entre mensagens para envios mais rápidos
                   </p>
                 </div>
                 <div>
