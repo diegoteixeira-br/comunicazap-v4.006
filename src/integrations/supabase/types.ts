@@ -38,47 +38,6 @@ export type Database = {
         }
         Relationships: []
       }
-      contacts: {
-        Row: {
-          created_at: string
-          id: string
-          name: string | null
-          phone_number: string
-          status: string | null
-          tags: string[] | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name?: string | null
-          phone_number: string
-          status?: string | null
-          tags?: string[] | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string | null
-          phone_number?: string
-          status?: string | null
-          tags?: string[] | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contacts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       message_campaigns: {
         Row: {
           campaign_name: string | null
@@ -90,7 +49,6 @@ export type Database = {
           message_variations: string[] | null
           sent_count: number | null
           status: string | null
-          target_tags: string[] | null
           total_contacts: number | null
           user_id: string
         }
@@ -104,7 +62,6 @@ export type Database = {
           message_variations?: string[] | null
           sent_count?: number | null
           status?: string | null
-          target_tags?: string[] | null
           total_contacts?: number | null
           user_id: string
         }
@@ -118,7 +75,6 @@ export type Database = {
           message_variations?: string[] | null
           sent_count?: number | null
           status?: string | null
-          target_tags?: string[] | null
           total_contacts?: number | null
           user_id?: string
         }
@@ -257,8 +213,6 @@ export type Database = {
       }
       whatsapp_instances: {
         Row: {
-          ai_agent_active: boolean | null
-          ai_agent_instructions: string | null
           api_key: string | null
           created_at: string | null
           id: string
@@ -273,8 +227,6 @@ export type Database = {
           webhook_url: string | null
         }
         Insert: {
-          ai_agent_active?: boolean | null
-          ai_agent_instructions?: string | null
           api_key?: string | null
           created_at?: string | null
           id?: string
@@ -289,8 +241,6 @@ export type Database = {
           webhook_url?: string | null
         }
         Update: {
-          ai_agent_active?: boolean | null
-          ai_agent_instructions?: string | null
           api_key?: string | null
           created_at?: string | null
           id?: string
@@ -327,7 +277,10 @@ export type Database = {
         Args: { campaign_id: string }
         Returns: undefined
       }
-      user_has_access: { Args: { check_user_id: string }; Returns: boolean }
+      user_has_access: {
+        Args: { check_user_id: string }
+        Returns: boolean
+      }
       user_has_active_subscription: {
         Args: { check_user_id: string }
         Returns: boolean

@@ -61,40 +61,10 @@ serve(async (req) => {
     });
 
     if (isOptOut) {
-      console.log('Opt-out detected, updating contact status...');
-      
-      // Normalize phone number (remove @s.whatsapp.net suffix)
-      const normalizedPhone = sender.replace('@s.whatsapp.net', '');
-      
-      // Update contact status to unsubscribed in contacts table
-      const { error: updateError } = await supabaseClient
-        .from('contacts')
-        .update({ 
-          status: 'unsubscribed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', instance.user_id)
-        .eq('phone_number', normalizedPhone);
+      console.log('Opt-out detected, adding to blocked list');
 
-      // If contact doesn't exist, insert it as unsubscribed
-      if (updateError) {
-        console.log('Contact not found, creating as unsubscribed');
-        const { error: insertError } = await supabaseClient
-          .from('contacts')
-          .insert({
-            user_id: instance.user_id,
-            phone_number: normalizedPhone,
-            status: 'unsubscribed'
-          });
-        
-        if (insertError && insertError.code !== '23505') {
-          console.error('Error creating unsubscribed contact:', insertError);
-          throw insertError;
-        }
-      }
-      
-      // Also maintain backward compatibility with blocked_contacts
-      const { error: blockError } = await supabaseClient
+      // Adicionar à lista de bloqueio (INSERT ... ON CONFLICT DO NOTHING para evitar duplicatas)
+      const { error: insertError } = await supabaseClient
         .from('blocked_contacts')
         .insert({
           user_id: instance.user_id,
@@ -102,12 +72,23 @@ serve(async (req) => {
           reason: `Opt-out via message: "${message}"`
         });
 
-      // Ignore duplicate key errors (contact already blocked)
-      if (blockError && blockError.code !== '23505') {
-        console.error('Error blocking contact:', blockError);
+      if (insertError) {
+        // Se for erro de constraint UNIQUE, ignorar (já existe)
+        if (insertError.code === '23505') {
+          console.log('Contact already in blocked list');
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Contact already blocked',
+              blocked: true 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        throw insertError;
       }
-      
-      console.log('Contact unsubscribed successfully');
+
+      console.log('Contact added to blocked list successfully');
 
       return new Response(
         JSON.stringify({ 

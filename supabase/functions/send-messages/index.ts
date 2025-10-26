@@ -33,8 +33,7 @@ serve(async (req) => {
     });
 
     const requestSchema = z.object({
-      clients: z.array(clientSchema).optional().nullable(),
-      targetTags: z.array(z.string()).optional().nullable(),
+      clients: z.array(clientSchema).min(1, "At least one client required").max(1000, "Maximum 1000 clients per campaign"),
       message: z.string().trim().max(1000, "Message too long").optional().nullable(),
       messageVariations: z.array(z.string().trim().max(1000, "Message too long")).optional().nullable(),
       image: z.string().optional().nullable(),
@@ -43,42 +42,7 @@ serve(async (req) => {
 
     // Validate input
     const validatedData = requestSchema.parse(await req.json());
-    const { clients: providedClients, targetTags, message, messageVariations, image, campaignName } = validatedData;
-    
-    let clients = providedClients || [];
-    
-    // If target tags are provided, fetch contacts from database
-    if (targetTags && targetTags.length > 0) {
-      console.log('Fetching contacts by tags:', targetTags);
-      
-      const { data: contactsFromDb, error: contactsError } = await supabaseClient
-        .from('contacts')
-        .select('phone_number, name')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .contains('tags', targetTags);
-      
-      if (contactsError) {
-        console.error('Error fetching contacts:', contactsError);
-        throw contactsError;
-      }
-      
-      clients = contactsFromDb.map(contact => ({
-        "Nome do Cliente": contact.name || contact.phone_number,
-        "Telefone do Cliente": contact.phone_number
-      }));
-      
-      console.log(`Found ${clients.length} contacts with tags`);
-    }
-    
-    // Validate we have clients
-    if (!clients || clients.length === 0) {
-      throw new Error('No clients provided or found with the specified tags');
-    }
-    
-    if (clients.length > 1000) {
-      throw new Error('Maximum 1000 clients per campaign');
-    }
+    const { clients, message, messageVariations, image, campaignName } = validatedData;
 
     // Usar variações se fornecidas, senão usar mensagem única
     const variations = messageVariations && messageVariations.length > 0 
@@ -118,7 +82,6 @@ serve(async (req) => {
         campaign_name: campaignName || `Campaign ${new Date().toISOString()}`,
         total_contacts: clients.length,
         message_variations: variations,
-        target_tags: targetTags || [],
         status: 'in_progress'
       })
       .select()
@@ -148,18 +111,18 @@ serve(async (req) => {
       const client = clients[i];
       
       try {
-        // Check contact status in contacts table
-        const { data: contact } = await supabaseClient
-          .from('contacts')
-          .select('status')
+        // Verificar se o contato está na lista de bloqueio
+        const { data: blockedContact } = await supabaseClient
+          .from('blocked_contacts')
+          .select('id')
           .eq('user_id', user.id)
           .eq('phone_number', client["Telefone do Cliente"])
           .maybeSingle();
 
-        if (contact?.status === 'unsubscribed') {
-          console.log(`Contact ${client["Nome do Cliente"]} is unsubscribed, skipping`);
+        if (blockedContact) {
+          console.log(`Contact ${client["Nome do Cliente"]} is blocked, skipping`);
           
-          // Log as blocked
+          // Registrar como bloqueado nos logs
           await supabaseClient
             .from('message_logs')
             .insert({
@@ -170,22 +133,7 @@ serve(async (req) => {
               status: 'blocked'
             });
 
-          continue; // Skip to next contact
-        }
-        
-        // If contact doesn't exist in contacts table and not from targetTags, insert it
-        if (!contact && !targetTags) {
-          console.log(`Adding new contact ${client["Nome do Cliente"]} to contacts table`);
-          await supabaseClient
-            .from('contacts')
-            .insert({
-              user_id: user.id,
-              phone_number: client["Telefone do Cliente"],
-              name: client["Nome do Cliente"],
-              status: 'active'
-            })
-            .select()
-            .single();
+          continue; // Pular para o próximo contato
         }
 
         // Selecionar a variação de mensagem (round-robin)
