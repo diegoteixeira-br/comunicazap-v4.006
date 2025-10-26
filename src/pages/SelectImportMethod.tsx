@@ -2,8 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, MessageSquare, ArrowLeft } from "lucide-react";
+import { FileSpreadsheet, MessageSquare, ArrowLeft, Tag as TagIcon } from "lucide-react";
 import { ImportContactsModal } from "@/components/ImportContactsModal";
+import { TagSelector } from "@/components/TagSelector";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ClientData {
   "Nome do Cliente": string;
@@ -18,9 +27,25 @@ interface Contact {
 const SelectImportMethod = () => {
   const navigate = useNavigate();
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showTagSelector, setShowTagSelector] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const handleWhatsAppImportClick = () => {
     setShowImportModal(true);
+  };
+
+  const handleTagSelectorClick = () => {
+    setShowTagSelector(true);
+  };
+
+  const handleContinueWithTags = () => {
+    if (selectedTags.length === 0) {
+      return;
+    }
+    // Store selected tags and navigate to results
+    sessionStorage.setItem("selectedTags", JSON.stringify(selectedTags));
+    sessionStorage.removeItem("clientData"); // Clear any previous client data
+    navigate("/results");
   };
 
   const handleImportContacts = (contacts: Contact[]) => {
@@ -32,6 +57,7 @@ const SelectImportMethod = () => {
     
     // Armazena os contatos e navega para /results
     sessionStorage.setItem("clientData", JSON.stringify(clientData));
+    sessionStorage.removeItem("selectedTags"); // Clear any previous tags
     navigate("/results");
   };
 
@@ -55,7 +81,7 @@ const SelectImportMethod = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {/* Upload de Planilha */}
           <Card 
             className="cursor-pointer hover:shadow-xl transition-all hover:scale-105 border-2 hover:border-primary/50"
@@ -128,6 +154,44 @@ const SelectImportMethod = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Selecionar por Tags */}
+          <Card 
+            className="cursor-pointer hover:shadow-xl transition-all hover:scale-105 border-2 hover:border-blue-500/50"
+            onClick={handleTagSelectorClick}
+          >
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <TagIcon className="h-8 w-8 text-blue-500" />
+              </div>
+              <CardTitle className="text-2xl">Selecionar por Tags</CardTitle>
+              <CardDescription className="text-base">
+                Envie para contatos com tags específicas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">✓</span>
+                  <span>Segmentação por tags</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">✓</span>
+                  <span>Múltiplas tags</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-500 mt-0.5">✓</span>
+                  <span>Apenas contatos ativos</span>
+                </li>
+              </ul>
+              <Button 
+                className="w-full mt-4 sm:mt-6 text-sm sm:text-base" 
+                variant="outline"
+              >
+                Escolher Tags
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Modal de Importação */}
@@ -136,6 +200,30 @@ const SelectImportMethod = () => {
           onOpenChange={setShowImportModal}
           onImport={handleImportContacts}
         />
+
+        {/* Modal de Seleção de Tags */}
+        <Dialog open={showTagSelector} onOpenChange={setShowTagSelector}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Selecionar Contatos por Tags</DialogTitle>
+              <DialogDescription>
+                Escolha uma ou mais tags para filtrar os destinatários da campanha
+              </DialogDescription>
+            </DialogHeader>
+            <TagSelector selectedTags={selectedTags} onTagsChange={setSelectedTags} />
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowTagSelector(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleContinueWithTags}
+                disabled={selectedTags.length === 0}
+              >
+                Continuar com {selectedTags.length} tag{selectedTags.length !== 1 ? 's' : ''}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

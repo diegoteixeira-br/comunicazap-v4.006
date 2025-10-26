@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, History, Phone, Power, Loader2, RefreshCw, Unplug, CreditCard, Crown, Clock, Zap, AlertCircle, Send, XCircle, Eye, EyeOff } from 'lucide-react';
+import { MessageSquare, History, Phone, Power, Loader2, RefreshCw, Unplug, CreditCard, Crown, Clock, Zap, AlertCircle, Send, XCircle, Eye, EyeOff, Users } from 'lucide-react';
 import { ImportContactsModal } from '@/components/ImportContactsModal';
+import { AIAgentSettings } from '@/components/AIAgentSettings';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -469,7 +470,7 @@ const Dashboard = () => {
             </div>
 
             {/* Action Cards - Meio */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
               <Card 
                 className="cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5"
                 onClick={handleNewCampaign}
@@ -488,6 +489,24 @@ const Dashboard = () => {
                   </CardDescription>
                 </CardHeader>
               </Card>
+
+              <Link to="/contacts">
+                <Card className="cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 h-full">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-3 text-2xl">
+                        <div className="p-3 rounded-lg bg-blue-500/10">
+                          <Users className="h-6 w-6 text-blue-500" />
+                        </div>
+                        Contatos
+                      </CardTitle>
+                    </div>
+                    <CardDescription className="text-base mt-3">
+                      Gerencie seus contatos e tags
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
 
               <Link to="/history">
                 <Card className="cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5 h-full">
@@ -678,6 +697,9 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* AI Agent Configuration */}
+            {user && <AIAgentSettings userId={user.id} />}
           </div>
         )}
 
