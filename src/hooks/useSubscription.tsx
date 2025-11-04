@@ -37,11 +37,12 @@ export const useSubscription = () => {
 
     const checkSubscription = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Força refresh do token antes de verificar
+        const { data: { session }, error: sessionError } = await supabase.auth.refreshSession();
         
-        if (!session) {
-          setSubscriptionStatus(prev => ({ ...prev, loading: false }));
-          return;
+        if (sessionError || !session) {
+          console.warn('Sessão inválida, usando fallback direto do banco');
+          throw new Error('Sessão inválida');
         }
 
         const { data, error } = await supabase.functions.invoke('check-subscription', {
@@ -61,7 +62,7 @@ export const useSubscription = () => {
           loading: false,
         });
       } catch (error) {
-        console.error('Erro ao verificar assinatura:', error);
+        console.error('Erro ao verificar assinatura via função:', error);
         // Fallback: consultar diretamente o banco
         try {
           const { data: row } = await supabase
