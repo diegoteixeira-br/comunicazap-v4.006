@@ -5,10 +5,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ChevronLeft, ChevronRight, Cake, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Cake, Calendar as CalendarIcon, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Contact {
   id: string;
@@ -25,6 +35,10 @@ const BirthdayCalendar = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -78,6 +92,94 @@ const BirthdayCalendar = () => {
   const previousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
   const goToToday = () => setCurrentMonth(new Date());
+
+  const handleSendMessages = (day: Date) => {
+    const birthdaysToday = getBirthdaysForDay(day);
+    if (birthdaysToday.length === 0) {
+      toast({
+        title: "Nenhum aniversariante",
+        description: "Não há aniversariantes neste dia",
+        variant: "destructive"
+      });
+      return;
+    }
+    setSelectedDay(day);
+    setMessage("Feliz aniversário, {nome}! 🎉🎂 Desejamos um dia incrível e cheio de alegria!");
+    setShowMessageDialog(true);
+  };
+
+  const sendBirthdayMessages = async () => {
+    if (!selectedDay) return;
+    
+    const birthdaysToday = getBirthdaysForDay(selectedDay);
+    
+    if (birthdaysToday.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Nenhum aniversariante encontrado",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!message.trim()) {
+      toast({
+        title: "Erro",
+        description: "Por favor, digite uma mensagem",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      
+      const clients = birthdaysToday.map(contact => ({
+        "Nome do Cliente": contact.name || contact.phone_number,
+        "Telefone do Cliente": contact.phone_number
+      }));
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("Sessão não encontrada");
+      }
+
+      const response = await supabase.functions.invoke('send-messages', {
+        body: {
+          clients,
+          message,
+          campaignName: `Aniversários - ${format(selectedDay, "dd/MM/yyyy")}`
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.error) {
+        throw response.error;
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: `Mensagens enviadas para ${birthdaysToday.length} aniversariante(s)`,
+      });
+
+      setShowMessageDialog(false);
+      setSelectedDay(null);
+      setMessage("");
+      
+    } catch (error: any) {
+      console.error('Error sending messages:', error);
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível enviar as mensagens",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -194,10 +296,10 @@ const BirthdayCalendar = () => {
                     <div
                       key={day.toISOString()}
                       className={`
-                        min-h-[100px] p-2 border rounded-lg transition-all
+                        min-h-[120px] p-2 border rounded-lg transition-all
                         ${isToday ? 'border-primary border-2 bg-primary/5' : 'border-border'}
                         ${hasBirthdays ? 'bg-secondary/30 hover:bg-secondary/50' : 'hover:bg-accent'}
-                        cursor-pointer
+                        cursor-pointer relative
                       `}
                     >
                       <div className="flex justify-between items-start mb-1">
@@ -213,22 +315,33 @@ const BirthdayCalendar = () => {
                       </div>
                       
                       {hasBirthdays && (
-                        <div className="space-y-1 mt-2">
-                          {birthdaysToday.slice(0, 2).map((contact) => (
-                            <div
-                              key={contact.id}
-                              className="text-xs p-1 bg-background/50 rounded truncate"
-                              title={contact.name || contact.phone_number}
-                            >
-                              🎂 {contact.name || contact.phone_number.slice(-4)}
-                            </div>
-                          ))}
-                          {birthdaysToday.length > 2 && (
-                            <div className="text-xs text-muted-foreground text-center">
-                              +{birthdaysToday.length - 2} mais
-                            </div>
-                          )}
-                        </div>
+                        <>
+                          <div className="space-y-1 mt-2 mb-2">
+                            {birthdaysToday.slice(0, 2).map((contact) => (
+                              <div
+                                key={contact.id}
+                                className="text-xs p-1 bg-background/50 rounded truncate"
+                                title={contact.name || contact.phone_number}
+                              >
+                                🎂 {contact.name || contact.phone_number.slice(-4)}
+                              </div>
+                            ))}
+                            {birthdaysToday.length > 2 && (
+                              <div className="text-xs text-muted-foreground text-center">
+                                +{birthdaysToday.length - 2} mais
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-xs h-7"
+                            onClick={() => handleSendMessages(day)}
+                          >
+                            <Send className="h-3 w-3 mr-1" />
+                            Enviar
+                          </Button>
+                        </>
                       )}
                     </div>
                   );
@@ -291,6 +404,80 @@ const BirthdayCalendar = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Send Message Dialog */}
+        <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Enviar Mensagens de Aniversário</DialogTitle>
+              <DialogDescription>
+                {selectedDay && (
+                  <>
+                    Enviar para {getBirthdaysForDay(selectedDay).length} aniversariante(s) do dia{" "}
+                    {format(selectedDay, "dd/MM/yyyy")}
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="message">Mensagem</Label>
+                <Textarea
+                  id="message"
+                  placeholder="Digite sua mensagem de aniversário..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={5}
+                  className="mt-2"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Use <span className="font-mono bg-muted px-1 rounded">&#123;nome&#125;</span> para personalizar com o nome do contato
+                </p>
+              </div>
+
+              {selectedDay && (
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-sm font-medium mb-2">Aniversariantes:</p>
+                  <div className="space-y-1 max-h-40 overflow-y-auto">
+                    {getBirthdaysForDay(selectedDay).map((contact) => (
+                      <div key={contact.id} className="text-sm flex items-center gap-2">
+                        <Cake className="h-3 w-3 text-primary" />
+                        {contact.name || contact.phone_number}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowMessageDialog(false)}
+                disabled={isSending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={sendBirthdayMessages}
+                disabled={isSending || !message.trim()}
+              >
+                {isSending ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Enviar Mensagens
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
