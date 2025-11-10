@@ -403,6 +403,10 @@ const Contacts = () => {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => navigate("/birthday-calendar")}>
+                <Cake className="mr-2 h-4 w-4" />
+                Calendário
+              </Button>
               <Button variant="outline" onClick={() => setShowImportDialog(true)}>
                 <Download className="mr-2 h-4 w-4" />
                 Importar do WhatsApp
