@@ -486,17 +486,26 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
               <Card 
                 className={`cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border-2 ${
-                  subscription.has_access 
+                  subscription.loading
+                    ? 'border-border bg-gradient-to-br from-muted/5 to-muted/10'
+                    : subscription.has_access 
                     ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5' 
                     : 'border-red-500/30 bg-gradient-to-br from-red-500/5 to-orange-500/5'
                 }`}
                 onClick={() => {
+                  if (subscription.loading) {
+                    toast({
+                      title: "Aguarde",
+                      description: "Verificando seu acesso...",
+                    });
+                    return;
+                  }
                   if (subscription.has_access) {
                     handleNewCampaign();
                   } else {
                     toast({
                       title: "Acesso Bloqueado",
-                      description: "Assine para criar campanhas",
+                      description: "Assine para criar campanhas.",
                       variant: "destructive"
                     });
                   }
@@ -510,7 +519,12 @@ const Dashboard = () => {
                       </div>
                       Nova Campanha
                     </CardTitle>
-                    {!subscription.has_access && (
+                    {subscription.loading ? (
+                      <Badge variant="secondary" className="gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Verificando...
+                      </Badge>
+                    ) : !subscription.has_access && (
                       <Badge variant="destructive">Bloqueado</Badge>
                     )}
                   </div>
@@ -729,7 +743,7 @@ const Dashboard = () => {
                       className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
                     >
                       <Crown className="mr-2 h-4 w-4" />
-                      Assinar Agora - R$ 98,50/mês
+                      Assinar Agora
                     </Button>
                   ) : (
                     <Button 

@@ -9,6 +9,7 @@ interface SubscriptionStatus {
   has_access: boolean;
   status: string;
   loading: boolean;
+  verified: boolean;
 }
 
 export const useSubscription = () => {
@@ -33,28 +34,32 @@ export const useSubscription = () => {
   
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(() => {
     const cached = getCachedStatus();
-    return cached || {
-      subscribed: false,
-      trial_active: false,
-      trial_days_left: 0,
-      has_access: false,
-      status: 'inactive',
-      loading: true,
-    };
+    return cached 
+      ? { ...cached, loading: true, verified: false }
+      : {
+          subscribed: false,
+          trial_active: false,
+          trial_days_left: 0,
+          has_access: false,
+          status: 'inactive',
+          loading: true,
+          verified: false,
+        };
   });
 
   useEffect(() => {
-    if (!user) {
-      setSubscriptionStatus({
-        subscribed: false,
-        trial_active: false,
-        trial_days_left: 0,
-        has_access: false,
-        status: 'inactive',
-        loading: false,
-      });
-      return;
-    }
+      if (!user) {
+        setSubscriptionStatus({
+          subscribed: false,
+          trial_active: false,
+          trial_days_left: 0,
+          has_access: false,
+          status: 'inactive',
+          loading: false,
+          verified: true,
+        });
+        return;
+      }
 
     const checkSubscription = async () => {
       try {
@@ -82,6 +87,7 @@ export const useSubscription = () => {
           has_access: data.has_access || false,
           status: data.status || 'inactive',
           loading: false,
+          verified: true,
         };
         
         setSubscriptionStatus(newStatus);
@@ -119,6 +125,7 @@ export const useSubscription = () => {
               has_access: subscribed || trialActive,
               status: row.status || (trialActive ? 'trial' : 'inactive'),
               loading: false,
+              verified: true,
             };
             
             setSubscriptionStatus(newStatus);

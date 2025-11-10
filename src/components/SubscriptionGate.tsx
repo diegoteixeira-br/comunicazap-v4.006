@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Crown, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/sessionClient';
 import { toast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface SubscriptionGateProps {
   children: React.ReactNode;
@@ -14,6 +14,12 @@ interface SubscriptionGateProps {
 export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
   const subscription = useSubscription();
   const [startingCheckout, setStartingCheckout] = useState(false);
+  const [minDelayElapsed, setMinDelayElapsed] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMinDelayElapsed(true), 700);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleStartCheckout = async () => {
     setStartingCheckout(true);
@@ -56,9 +62,8 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
     }
   };
 
-  // Se estiver carregando MAS houver acesso no cache, mostra o conteúdo
-  // Isso evita o bloqueio temporário durante navegação entre páginas
-  if (subscription.loading && !subscription.has_access) {
+  // Mostra loader enquanto verifica OU enquanto delay mínimo não passou
+  if (subscription.loading || !subscription.verified || !minDelayElapsed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="text-center">
@@ -109,7 +114,7 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
               ) : (
                 <>
                   <Crown className="mr-2 h-5 w-5" />
-                  Assinar Agora - R$ 59,90/mês
+                  Assinar Agora
                 </>
               )}
             </Button>
