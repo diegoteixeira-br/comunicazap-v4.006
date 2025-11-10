@@ -56,7 +56,9 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
     }
   };
 
-  if (subscription.loading) {
+  // Se estiver carregando MAS houver acesso no cache, mostra o conteúdo
+  // Isso evita o bloqueio temporário durante navegação entre páginas
+  if (subscription.loading && !subscription.has_access) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="text-center">

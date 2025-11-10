@@ -13,13 +13,34 @@ interface SubscriptionStatus {
 
 export const useSubscription = () => {
   const { user } = useAuth();
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
-    subscribed: false,
-    trial_active: false,
-    trial_days_left: 0,
-    has_access: false,
-    status: 'inactive',
-    loading: true,
+  
+  // Tenta recuperar do cache da sessão
+  const getCachedStatus = (): SubscriptionStatus | null => {
+    try {
+      const cached = sessionStorage.getItem('subscription_status');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        // Verifica se o cache tem menos de 30 segundos
+        if (parsed.timestamp && Date.now() - parsed.timestamp < 30000) {
+          return parsed.data;
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao ler cache de assinatura:', e);
+    }
+    return null;
+  };
+  
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(() => {
+    const cached = getCachedStatus();
+    return cached || {
+      subscribed: false,
+      trial_active: false,
+      trial_days_left: 0,
+      has_access: false,
+      status: 'inactive',
+      loading: true,
+    };
   });
 
   useEffect(() => {
@@ -54,14 +75,26 @@ export const useSubscription = () => {
 
         if (error) throw error;
 
-        setSubscriptionStatus({
+        const newStatus = {
           subscribed: data.subscribed || false,
           trial_active: data.trial_active || false,
           trial_days_left: data.trial_days_left || 0,
           has_access: data.has_access || false,
           status: data.status || 'inactive',
           loading: false,
-        });
+        };
+        
+        setSubscriptionStatus(newStatus);
+        
+        // Armazena no cache da sessão
+        try {
+          sessionStorage.setItem('subscription_status', JSON.stringify({
+            data: newStatus,
+            timestamp: Date.now()
+          }));
+        } catch (e) {
+          console.warn('Erro ao salvar cache de assinatura:', e);
+        }
       } catch (error) {
         console.log('Usando fallback direto do banco');
         // Fallback: consultar diretamente o banco
@@ -79,14 +112,26 @@ export const useSubscription = () => {
               : 0;
             const subscribed = row.status === 'active' && !!row.current_period_end && new Date(row.current_period_end) > new Date();
             
-            setSubscriptionStatus({
+            const newStatus = {
               subscribed,
               trial_active: trialActive,
               trial_days_left: trialDaysLeft,
               has_access: subscribed || trialActive,
               status: row.status || (trialActive ? 'trial' : 'inactive'),
               loading: false,
-            });
+            };
+            
+            setSubscriptionStatus(newStatus);
+            
+            // Armazena no cache da sessão
+            try {
+              sessionStorage.setItem('subscription_status', JSON.stringify({
+                data: newStatus,
+                timestamp: Date.now()
+              }));
+            } catch (e) {
+              console.warn('Erro ao salvar cache de assinatura:', e);
+            }
           } else {
             setSubscriptionStatus(prev => ({ ...prev, loading: false }));
           }
