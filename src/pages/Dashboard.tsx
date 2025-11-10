@@ -348,7 +348,33 @@ const Dashboard = () => {
   };
 
   const handleNewCampaign = () => {
-    navigate('/select-import-method');
+    // Permite navegação se tiver acesso (verificado ou via cache)
+    if (subscription.has_access) {
+      navigate('/select-import-method');
+      return;
+    }
+
+    // Acesso otimista via cache (ainda não verificado)
+    if (!subscription.verified && subscription.has_access) {
+      navigate('/select-import-method');
+      return;
+    }
+
+    // Se ainda está carregando
+    if (subscription.loading) {
+      toast({
+        title: "Aguarde",
+        description: "Verificando seu acesso...",
+      });
+      return;
+    }
+    
+    // Bloqueado após verificação
+    toast({
+      title: "Acesso bloqueado",
+      description: "Assine para criar campanhas.",
+      variant: "destructive",
+    });
   };
 
   const handleImportContacts = (contacts: { name: string; phone: string }[]) => {
@@ -492,24 +518,7 @@ const Dashboard = () => {
                     ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5' 
                     : 'border-red-500/30 bg-gradient-to-br from-red-500/5 to-orange-500/5'
                 }`}
-                onClick={() => {
-                  if (subscription.loading) {
-                    toast({
-                      title: "Aguarde",
-                      description: "Verificando seu acesso...",
-                    });
-                    return;
-                  }
-                  if (subscription.has_access) {
-                    handleNewCampaign();
-                  } else {
-                    toast({
-                      title: "Acesso Bloqueado",
-                      description: "Assine para criar campanhas.",
-                      variant: "destructive"
-                    });
-                  }
-                }}
+                onClick={handleNewCampaign}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -519,14 +528,14 @@ const Dashboard = () => {
                       </div>
                       Nova Campanha
                     </CardTitle>
-                    {subscription.loading ? (
+                    {subscription.loading && subscription.verified === false ? (
                       <Badge variant="secondary" className="gap-1">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         Verificando...
                       </Badge>
-                    ) : !subscription.has_access && (
+                    ) : subscription.verified && !subscription.has_access ? (
                       <Badge variant="destructive">Bloqueado</Badge>
-                    )}
+                    ) : null}
                   </div>
                   <CardDescription className="text-base mt-3">
                     Importar contatos do WhatsApp e iniciar envio

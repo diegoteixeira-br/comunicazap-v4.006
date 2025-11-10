@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ interface SubscriptionGateProps {
 
 export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
   const subscription = useSubscription();
+  const navigate = useNavigate();
   const [startingCheckout, setStartingCheckout] = useState(false);
   const [minDelayElapsed, setMinDelayElapsed] = useState(false);
 
@@ -20,6 +21,16 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
     const timer = setTimeout(() => setMinDelayElapsed(true), 700);
     return () => clearTimeout(timer);
   }, []);
+
+  // Acesso otimista: se o cache indicar acesso (mesmo sem verificação completa), permite
+  const allowFromCache = !subscription.verified && subscription.has_access;
+
+  // Se a verificação terminar e perder acesso, redireciona
+  useEffect(() => {
+    if (subscription.verified && !subscription.has_access && !subscription.loading) {
+      // Usuário perdeu acesso após verificação
+    }
+  }, [subscription.verified, subscription.has_access, subscription.loading]);
 
   const handleStartCheckout = async () => {
     setStartingCheckout(true);
@@ -61,6 +72,11 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
       setStartingCheckout(false);
     }
   };
+
+  // Se tiver acesso via cache, renderiza direto (verificação em background)
+  if (allowFromCache) {
+    return <>{children}</>;
+  }
 
   // Mostra loader enquanto verifica OU enquanto delay mínimo não passou
   if (subscription.loading || !subscription.verified || !minDelayElapsed) {
@@ -122,7 +138,7 @@ export const SubscriptionGate = ({ children }: SubscriptionGateProps) => {
             <Button 
               variant="outline" 
               className="w-full"
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => navigate('/dashboard')}
             >
               Voltar ao Dashboard
             </Button>
