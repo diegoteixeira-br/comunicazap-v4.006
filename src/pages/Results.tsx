@@ -83,23 +83,72 @@ const Results = () => {
     }
 
     const storedData = sessionStorage.getItem("clientData");
-    if (!storedData) {
+    const storedTags = sessionStorage.getItem("selectedTags");
+
+    // Check if we have either clientData or selectedTags
+    if (!storedData && !storedTags) {
       toast.error("Nenhum dado encontrado", {
-        description: "Por favor, faça o upload de uma planilha primeiro"
+        description: "Por favor, faça o upload de uma planilha ou selecione tags primeiro"
       });
-      navigate("/upload");
+      navigate("/select-import-method");
       return;
     }
 
-    try {
-      const parsedData = JSON.parse(storedData);
-      setClients(parsedData);
-    } catch (error) {
-      console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar dados");
-      navigate("/upload");
+    // Load contacts from tags if available
+    if (storedTags && !storedData) {
+      loadContactsByTags(JSON.parse(storedTags));
+      return;
+    }
+
+    // Load contacts from uploaded data
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        setClients(parsedData);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        toast.error("Erro ao carregar dados");
+        navigate("/select-import-method");
+      }
     }
   }, [navigate, user, authLoading]);
+
+  // Function to load contacts based on selected tags
+  const loadContactsByTags = async (tags: string[]) => {
+    try {
+      const { data: contacts, error } = await supabase
+        .from('contacts')
+        .select('name, phone_number')
+        .eq('user_id', user?.id)
+        .eq('status', 'active')
+        .overlaps('tags', tags);
+
+      if (error) throw error;
+
+      if (!contacts || contacts.length === 0) {
+        toast.error("Nenhum contato encontrado", {
+          description: "Não há contatos ativos com as tags selecionadas"
+        });
+        navigate("/select-import-method");
+        return;
+      }
+
+      // Convert to ClientData format
+      const clientData: ClientData[] = contacts.map(contact => ({
+        "Nome do Cliente": contact.name || "",
+        "Telefone do Cliente": contact.phone_number
+      }));
+
+      setClients(clientData);
+      toast.success(`${clientData.length} contatos carregados com sucesso!`);
+    } catch (error: any) {
+      console.error('Error loading contacts by tags:', error);
+      toast.error("Erro ao carregar contatos", {
+        description: error.message
+      });
+      navigate("/select-import-method");
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
