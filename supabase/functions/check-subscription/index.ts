@@ -99,7 +99,8 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    try {
+      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
@@ -301,6 +302,28 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+  } catch (stripeError) {
+    const msg = stripeError instanceof Error ? stripeError.message : String(stripeError);
+    logStep("Stripe unavailable, using DB fallback", { message: msg });
+    const { data: row } = await supabaseClient
+      .from('user_subscriptions')
+      .select('trial_active, trial_ends_at, status')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const trialActive = row?.trial_active && row?.trial_ends_at && new Date(row.trial_ends_at) > new Date();
+    const trialDaysLeft = trialActive ? Math.ceil((new Date(row!.trial_ends_at!).getTime() - new Date().getTime()) / (1000*60*60*24)) : 0;
+    return new Response(JSON.stringify({
+      subscribed: false,
+      trial_active: trialActive,
+      trial_ends_at: row?.trial_ends_at,
+      trial_days_left: trialDaysLeft,
+      has_access: trialActive,
+      status: row?.status || 'inactive'
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logStep("ERROR in check-subscription", { message: errorMessage });
