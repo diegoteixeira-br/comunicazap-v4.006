@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import { STRIPE_PRODUCTS } from '@/config/stripeProducts';
 interface SubscriptionStatus {
   subscribed: boolean;
   trial_active: boolean;
@@ -312,6 +312,9 @@ const Dashboard = () => {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
+        body: {
+          price_id: STRIPE_PRODUCTS.premium.price_id
+        }
       });
 
       if (error) throw error;
