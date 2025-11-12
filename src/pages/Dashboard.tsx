@@ -10,6 +10,7 @@ import { MessageSquare, History, Phone, Power, Loader2, RefreshCw, Unplug, Credi
 import { ImportContactsModal } from '@/components/ImportContactsModal';
 import { UsageStats } from '@/components/UsageStats';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CheckoutHealthCheck } from '@/components/CheckoutHealthCheck';
 import { toast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -770,6 +771,9 @@ const Dashboard = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Diagnóstico do Checkout */}
+              <CheckoutHealthCheck />
             </div>
           </div>
         )}
