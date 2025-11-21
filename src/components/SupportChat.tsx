@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Send, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -188,6 +188,17 @@ export const SupportChat = () => {
     }
   };
 
+  const handleClearHistory = () => {
+    setMessages([{
+      role: 'assistant',
+      content: 'Olá! Sou o assistente do ComunicaZap. Como posso ajudar você hoje?'
+    }]);
+    toast({
+      title: "Histórico limpo",
+      description: "O histórico do chat foi limpo com sucesso.",
+    });
+  };
+
   return (
     <>
       {/* Floating Button */}
@@ -218,14 +229,26 @@ export const SupportChat = () => {
                 <p className="text-xs opacity-90">Assistente de IA</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsOpen(false)}
-              className="hover:bg-primary-foreground/20"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClearHistory}
+                className="hover:bg-primary-foreground/20"
+                title="Limpar histórico"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsOpen(false)}
+                className="hover:bg-primary-foreground/20"
+                title="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages */}
