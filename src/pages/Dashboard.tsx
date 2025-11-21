@@ -6,7 +6,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, History, Phone, Power, Loader2, RefreshCw, Unplug, CreditCard, Crown, Clock, Zap, AlertCircle, Send, XCircle, Eye, EyeOff, Users } from 'lucide-react';
+import { MessageSquare, History, Phone, Power, Loader2, RefreshCw, Unplug, CreditCard, Crown, Clock, Zap, AlertCircle, Send, XCircle, Eye, EyeOff, Users, Shield } from 'lucide-react';
 import { ImportContactsModal } from '@/components/ImportContactsModal';
 import { UsageStats } from '@/components/UsageStats';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -55,6 +55,7 @@ const Dashboard = () => {
     const saved = localStorage.getItem('showPhone');
     return saved !== null ? saved === 'true' : true;
   });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -63,7 +64,8 @@ const Dashboard = () => {
         fetchUserProfile(),
         fetchWhatsAppInstance(),
         fetchCampaigns(),
-        checkSubscription()
+        checkSubscription(),
+        checkAdminRole()
       ]);
       
       const channel = supabase
@@ -96,6 +98,17 @@ const Dashboard = () => {
       .maybeSingle();
     
     setUserProfile(data);
+  };
+
+  const checkAdminRole = async () => {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user?.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+    
+    setIsAdmin(!!data);
   };
 
   const fetchWhatsAppInstance = async () => {
@@ -444,6 +457,12 @@ const Dashboard = () => {
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <ThemeToggle />
+            {isAdmin && (
+              <Button variant="outline" onClick={() => navigate('/admin/support')} className="gap-2">
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Admin</span>
+              </Button>
+            )}
             <Button variant="outline" onClick={handleSignOut} className="gap-2 flex-1 sm:flex-initial">
               <Power className="h-4 w-4" />
               <span className="sm:inline">Sair</span>
