@@ -49,11 +49,12 @@ serve(async (req) => {
       console.log('No WhatsApp instance found for user');
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: 'WhatsApp não conectado. Por favor, conecte seu WhatsApp primeiro.',
           groups: [] 
         }),
         { 
-          status: 404,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -63,11 +64,12 @@ serve(async (req) => {
       console.log('WhatsApp instance not connected, status:', instance.status);
       return new Response(
         JSON.stringify({ 
+          success: false,
           error: 'WhatsApp não está conectado. Por favor, escaneie o QR code primeiro.',
           groups: [] 
         }),
         { 
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -127,7 +129,10 @@ serve(async (req) => {
     console.log(`Found ${groups.length} valid groups`);
 
     return new Response(
-      JSON.stringify({ groups }),
+      JSON.stringify({ 
+        success: true,
+        groups 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -135,11 +140,12 @@ serve(async (req) => {
     console.error('Error fetching groups:', error);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message,
         groups: [] 
       }),
       { 
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

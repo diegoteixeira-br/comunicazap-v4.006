@@ -55,19 +55,19 @@ export const GroupSelector = ({ selectedGroups, onGroupsChange }: GroupSelectorP
         throw new Error(error.message);
       }
 
-      // Verificar se há erro na resposta
-      if (data.error) {
+      // Verificar se a resposta indica sucesso = false
+      if (data && data.success === false) {
         // Se o erro é de WhatsApp não conectado, marcar flag
-        if (data.error.includes('não conectado')) {
+        if (data.error && data.error.includes('não conectado')) {
           setNoInstance(true);
         }
         toast.error('Erro ao buscar grupos', {
-          description: data.error
+          description: data.error || 'Erro desconhecido'
         });
         return;
       }
 
-      if (data.groups && data.groups.length > 0) {
+      if (data && data.groups && data.groups.length > 0) {
         setGroups(data.groups);
         toast.success(`${data.groups.length} grupos encontrados`);
       } else {
