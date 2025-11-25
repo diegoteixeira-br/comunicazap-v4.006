@@ -12,6 +12,23 @@ O sistema agora **salva automaticamente** as imagens/vídeos no Supabase Storage
 
 ---
 
+## 📢 Suporte a Grupos do WhatsApp
+
+O sistema agora suporta envio de mensagens para grupos do WhatsApp! 
+
+**Como funciona:**
+- Os grupos são buscados diretamente da sua conta WhatsApp conectada
+- O ID do grupo termina com `@g.us` (ex: `120363123456789@g.us`)
+- A Evolution API aceita IDs de grupo da mesma forma que números de contato
+- **Nenhuma mudança é necessária no workflow do n8n** - os grupos funcionam automaticamente!
+
+**Para o n8n:**
+- Quando é um grupo, o campo `number` conterá o ID completo do grupo (ex: `120363123456789@g.us`)
+- A Evolution API detecta automaticamente se é um grupo ou contato individual
+- Use exatamente as mesmas configurações de HTTP Request descritas abaixo
+
+---
+
 ## Formato do Payload Enviado pelo Sistema
 
 O sistema envia o seguinte JSON para o webhook do n8n:

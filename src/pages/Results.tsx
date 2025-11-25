@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle, RefreshCw, Eye, EyeOff, Lock } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle, RefreshCw, Eye, EyeOff, Lock, Users } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ClientData } from "./Upload";
@@ -61,6 +61,11 @@ const Results = () => {
   const [blockedContacts, setBlockedContacts] = useState<Set<string>>(new Set());
   const [loadingBlocked, setLoadingBlocked] = useState(true);
   const [showWhatsAppPhone, setShowWhatsAppPhone] = useState(true);
+  
+  // Detectar se estamos trabalhando com grupos
+  const isWorkingWithGroups = clients.some(c => c["Telefone do Cliente"].includes('@g.us'));
+  const storedGroups = sessionStorage.getItem("selectedGroups");
+  const groupsData = storedGroups ? JSON.parse(storedGroups) : [];
 
   // Função para normalizar número de telefone (remover sufixo WhatsApp)
   const normalizePhone = (phone: string): string => {
@@ -84,27 +89,34 @@ const Results = () => {
 
     const storedData = sessionStorage.getItem("clientData");
     const storedTags = sessionStorage.getItem("selectedTags");
+    const storedGroups = sessionStorage.getItem("selectedGroups");
 
-    // Check if we have either clientData or selectedTags
-    if (!storedData && !storedTags) {
+    // Check if we have either clientData, selectedTags, or selectedGroups
+    if (!storedData && !storedTags && !storedGroups) {
       toast.error("Nenhum dado encontrado", {
-        description: "Por favor, faça o upload de uma planilha ou selecione tags primeiro"
+        description: "Por favor, faça o upload de uma planilha, selecione tags ou grupos primeiro"
       });
       navigate("/select-import-method");
       return;
     }
 
     // Load contacts from tags if available
-    if (storedTags && !storedData) {
+    if (storedTags && !storedData && !storedGroups) {
       loadContactsByTags(JSON.parse(storedTags));
       return;
     }
 
-    // Load contacts from uploaded data
+    // Load contacts from uploaded data or groups
     if (storedData) {
       try {
         const parsedData = JSON.parse(storedData);
         setClients(parsedData);
+        
+        // If loading groups, show appropriate message
+        if (storedGroups) {
+          const groups = JSON.parse(storedGroups);
+          toast.success(`${groups.length} grupo${groups.length !== 1 ? 's' : ''} carregado${groups.length !== 1 ? 's' : ''}!`);
+        }
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         toast.error("Erro ao carregar dados");
@@ -1432,25 +1444,31 @@ const Results = () => {
               <CardHeader>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <CardTitle className="text-base sm:text-lg">Lista de Clientes</CardTitle>
+                    <CardTitle className="text-base sm:text-lg">
+                      {isWorkingWithGroups ? 'Lista de Grupos' : 'Lista de Clientes'}
+                    </CardTitle>
                     <CardDescription className="text-xs sm:text-sm">
-                      {blockedClientsCount > 0 
-                        ? `Marque para excluir • ${availableClientsCount} disponíveis, ${blockedClientsCount} bloqueados`
-                        : "Marque as checkboxes para excluir"
+                      {isWorkingWithGroups 
+                        ? `${clients.length} grupo${clients.length !== 1 ? 's' : ''} selecionado${clients.length !== 1 ? 's' : ''}`
+                        : blockedClientsCount > 0 
+                          ? `Marque para excluir • ${availableClientsCount} disponíveis, ${blockedClientsCount} bloqueados`
+                          : "Marque as checkboxes para excluir"
                       }
                     </CardDescription>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleRefreshBlocked}
-                      disabled={loadingBlocked}
-                      className="gap-2 flex-1 sm:flex-initial"
-                    >
-                      <RefreshCw className={`h-4 w-4 ${loadingBlocked ? 'animate-spin' : ''}`} />
-                      Atualizar
-                    </Button>
+                    {!isWorkingWithGroups && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshBlocked}
+                        disabled={loadingBlocked}
+                        className="gap-2 flex-1 sm:flex-initial"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${loadingBlocked ? 'animate-spin' : ''}`} />
+                        Atualizar
+                      </Button>
+                    )}
                     {selectedClients.size > 0 && (
                       <Button
                         variant="destructive"
@@ -1472,20 +1490,27 @@ const Results = () => {
                       <TableRow>
                         <TableHead className="w-[40px] sm:w-[50px]">
                           <Checkbox
-                            checked={selectedClients.size > 0 && selectedClients.size === availableClientsCount}
+                            checked={selectedClients.size > 0 && selectedClients.size === (isWorkingWithGroups ? clients.length : availableClientsCount)}
                             onCheckedChange={handleSelectAll}
                           />
                         </TableHead>
                         <TableHead className="w-[35px] sm:w-[45px]">#</TableHead>
-                        <TableHead className="min-w-[100px]">Nome</TableHead>
-                        <TableHead className="min-w-[90px]">Telefone</TableHead>
+                        <TableHead className="min-w-[100px]">
+                          {isWorkingWithGroups ? 'Nome do Grupo' : 'Nome'}
+                        </TableHead>
+                        <TableHead className="min-w-[90px]">
+                          {isWorkingWithGroups ? 'Membros' : 'Telefone'}
+                        </TableHead>
                         <TableHead className="w-[70px] sm:w-[85px]">Status</TableHead>
-                        <TableHead className="w-[75px] sm:w-[95px]">Bloqueio</TableHead>
+                        {!isWorkingWithGroups && <TableHead className="w-[75px] sm:w-[95px]">Bloqueio</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {clients.map((client, index) => {
-                        const isBlocked = blockedContacts.has(normalizePhone(client["Telefone do Cliente"]));
+                        const isBlocked = !isWorkingWithGroups && blockedContacts.has(normalizePhone(client["Telefone do Cliente"]));
+                        const isGroup = client["Telefone do Cliente"].includes('@g.us');
+                        const groupInfo = isGroup ? groupsData.find((g: any) => g.id === client["Telefone do Cliente"]) : null;
+                        
                         return (
                           <TableRow key={index} className={isBlocked ? "opacity-50 bg-destructive/5" : ""}>
                             <TableCell>
@@ -1497,13 +1522,17 @@ const Results = () => {
                             </TableCell>
                             <TableCell className="font-medium text-xs">{index + 1}</TableCell>
                             <TableCell className="font-medium text-xs sm:text-sm">
-                              <div className="max-w-[150px] sm:max-w-none truncate">
+                              <div className="max-w-[150px] sm:max-w-none truncate flex items-center gap-2">
+                                {isGroup && <Users className="h-4 w-4 text-green-500 flex-shrink-0" />}
                                 {client["Nome do Cliente"]}
                               </div>
                             </TableCell>
                             <TableCell className="text-xs sm:text-sm">
                               <div className="max-w-[100px] sm:max-w-none truncate">
-                                {client["Telefone do Cliente"]}
+                                {isGroup 
+                                  ? `${groupInfo?.size || 0} ${groupInfo?.size === 1 ? 'membro' : 'membros'}`
+                                  : client["Telefone do Cliente"]
+                                }
                               </div>
                             </TableCell>
                             <TableCell>
@@ -1515,17 +1544,19 @@ const Results = () => {
                                 getStatusBadge(sendingStatus[client["Telefone do Cliente"]] || "idle")
                               )}
                             </TableCell>
-                            <TableCell>
-                              {isBlocked ? (
-                                <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 py-0.5 gap-0.5 whitespace-nowrap">
-                                  🚫 Não
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 py-0.5 gap-0.5 bg-success/10 text-success border-success/20 whitespace-nowrap">
-                                  ✅ Sim
-                                </Badge>
-                              )}
-                            </TableCell>
+                            {!isWorkingWithGroups && (
+                              <TableCell>
+                                {isBlocked ? (
+                                  <Badge variant="destructive" className="text-[10px] sm:text-xs px-1.5 py-0.5 gap-0.5 whitespace-nowrap">
+                                    🚫 Não
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 py-0.5 gap-0.5 bg-success/10 text-success border-success/20 whitespace-nowrap">
+                                    ✅ Sim
+                                  </Badge>
+                                )}
+                              </TableCell>
+                            )}
                           </TableRow>
                         );
                       })}
@@ -1560,12 +1591,16 @@ const Results = () => {
                           ) : (
                             <>
                               <Send className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                              <span className="text-sm sm:text-base">
-                                {selectedClients.size > 0
-                                  ? `Enviar (${availableClientsCount - selectedClients.size})`
-                                  : `Enviar para Todos (${availableClientsCount})`
-                                }
-                              </span>
+                                <span className="text-sm sm:text-base">
+                                  {isWorkingWithGroups
+                                    ? selectedClients.size > 0
+                                      ? `Enviar para ${clients.length - selectedClients.size} Grupos`
+                                      : `Enviar para ${clients.length} Grupos`
+                                    : selectedClients.size > 0
+                                      ? `Enviar (${availableClientsCount - selectedClients.size})`
+                                      : `Enviar para Todos (${availableClientsCount})`
+                                  }
+                                </span>
                             </>
                           )}
                         </Button>
