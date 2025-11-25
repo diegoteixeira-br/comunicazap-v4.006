@@ -85,7 +85,7 @@ serve(async (req) => {
     console.log('Calling Evolution API to fetch groups...');
 
     const response = await fetch(
-      `${evolutionApiUrl}/group/fetchAllGroups/${instance.instance_name}`,
+      `${evolutionApiUrl}/group/fetchAllGroups/${instance.instance_name}?getParticipants=true`,
       {
         method: 'GET',
         headers: {
