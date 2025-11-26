@@ -33,7 +33,9 @@ const PrivacyPolicy = () => {
               <li>E-mail</li>
               <li>Número de telefone</li>
               <li>Informações de pagamento (processadas por terceiros seguros)</li>
-              <li>Dados de contatos que você importa para a plataforma</li>
+              <li>Dados de contatos que você importa para a plataforma (nomes, telefones, tags)</li>
+              <li>Datas de aniversário dos contatos</li>
+              <li>Dados de grupos do WhatsApp (nome do grupo, quantidade de participantes)</li>
             </ul>
 
             <h3>2.2 Informações Coletadas Automaticamente</h3>
@@ -58,6 +60,9 @@ const PrivacyPolicy = () => {
               <li>Prevenir fraudes e garantir a segurança da plataforma</li>
               <li>Cumprir obrigações legais e regulatórias</li>
               <li>Enviar comunicações de marketing (apenas com seu consentimento)</li>
+              <li>Fornecer lembretes automáticos de aniversários dos seus contatos</li>
+              <li>Organizar e segmentar contatos através do sistema de tags</li>
+              <li>Facilitar o envio de mensagens para grupos do WhatsApp</li>
             </ul>
           </section>
 
@@ -70,7 +75,10 @@ const PrivacyPolicy = () => {
               <li><strong>Provedores de Serviço:</strong> Empresas que nos ajudam a operar a plataforma 
               (processamento de pagamentos, hospedagem, etc.)</li>
               <li><strong>Requisições Legais:</strong> Quando exigido por lei ou para proteger nossos direitos</li>
-              <li><strong>API do WhatsApp:</strong> Para possibilitar o envio de mensagens através da plataforma</li>
+              <li><strong>API do WhatsApp:</strong> Para possibilitar o envio de mensagens através da plataforma, 
+              incluindo envio para grupos quando autorizado por você</li>
+              <li><strong>Dados de Grupos:</strong> Informações de grupos são compartilhadas apenas conforme 
+              necessário para funcionalidade de envio, sempre mantendo a privacidade dos participantes</li>
             </ul>
           </section>
 

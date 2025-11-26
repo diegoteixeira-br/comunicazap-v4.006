@@ -28,8 +28,15 @@ const TermsOfService = () => {
             <h2>2. Descrição do Serviço</h2>
             <p>
               A DT Soluções Digital é uma plataforma de automação de marketing via WhatsApp que permite aos usuários
-              gerenciar e executar campanhas de mensagens em massa de forma profissional e eficiente.
+              gerenciar e executar campanhas de mensagens em massa de forma profissional e eficiente. O serviço inclui:
             </p>
+            <ul>
+              <li>Importação de contatos do WhatsApp e via planilhas</li>
+              <li>Envio de mensagens individuais e para grupos do WhatsApp</li>
+              <li>Gestão de contatos com sistema de tags e segmentação</li>
+              <li>Calendário de aniversários e lembretes automáticos</li>
+              <li>Histórico e relatórios de campanhas</li>
+            </ul>
           </section>
 
           <section>
@@ -53,6 +60,8 @@ const TermsOfService = () => {
               <li>Obter consentimento apropriado dos destinatários antes de enviar mensagens</li>
               <li>Não utilizar o serviço para atividades fraudulentas ou ilegais</li>
               <li>Respeitar os Termos de Serviço do WhatsApp</li>
+              <li>Usar o envio para grupos de forma responsável, respeitando os participantes</li>
+              <li>Não fazer uso abusivo do sistema de tags para práticas invasivas</li>
             </ul>
           </section>
 
@@ -65,6 +74,8 @@ const TermsOfService = () => {
               <li>Interferir no funcionamento da plataforma</li>
               <li>Usar o serviço para disseminar malware ou vírus</li>
               <li>Revender ou redistribuir o acesso à plataforma sem autorização</li>
+              <li>Enviar spam massivo para grupos do WhatsApp sem autorização dos administradores</li>
+              <li>Utilizar dados de aniversários para práticas invasivas ou não autorizadas</li>
             </ul>
           </section>
 
@@ -93,6 +104,9 @@ const TermsOfService = () => {
               <li>Problemas decorrentes de falhas na API do WhatsApp</li>
               <li>Danos indiretos, incidentais ou consequenciais do uso da plataforma</li>
               <li>Perda de dados causada por fatores externos ao nosso controle</li>
+              <li>Conteúdo ou consequências de mensagens enviadas para grupos do WhatsApp</li>
+              <li>Remoção de grupos ou bloqueios por administradores devido ao uso inadequado</li>
+              <li>Uso inadequado de informações de aniversários pelos usuários</li>
             </ul>
           </section>
 

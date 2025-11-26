@@ -13,6 +13,9 @@ import {
   Users,
   CheckCircle,
   Crown,
+  Tag,
+  Cake,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
@@ -51,6 +54,21 @@ const Index = () => {
       title: "Envio Inteligente",
       description: "Mensagens enviadas com delay de 1 segundo entre cada contato para maior agilidade",
     },
+    {
+      icon: UserPlus,
+      title: "Envio para Grupos",
+      description: "Envie mensagens para seus grupos do WhatsApp de forma automática e segura",
+    },
+    {
+      icon: Tag,
+      title: "Segmentação por Tags",
+      description: "Organize e filtre seus contatos com sistema de tags personalizadas",
+    },
+    {
+      icon: Cake,
+      title: "Calendário de Aniversários",
+      description: "Gerencie e envie mensagens de aniversário para seus contatos automaticamente",
+    },
   ];
 
   const benefits = [
@@ -76,8 +94,8 @@ const Index = () => {
     },
     {
       icon: Users,
-      title: "Gestão de Contatos",
-      description: "Importe e organize seus contatos de forma simples e prática",
+      title: "Gestão Avançada",
+      description: "Importe, organize, edite e exporte contatos com tags e campos personalizados",
     },
     {
       icon: CheckCircle,
@@ -197,13 +215,13 @@ const Index = () => {
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
                   2
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-1">Importe seus Contatos</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Escolha entre duas opções: importe contatos diretamente do seu WhatsApp conectado ou faça upload 
-                    de uma planilha CSV/XLSX com sua lista de contatos.
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-semibold mb-1">Importe seus Contatos</h3>
+                <p className="text-sm text-muted-foreground">
+                  Escolha entre 4 opções: importe contatos do WhatsApp, faça upload de planilha CSV/XLSX, 
+                  selecione por tags organizadas ou envie para grupos do WhatsApp.
+                </p>
+              </div>
               </div>
               <div className="flex gap-4">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
@@ -300,6 +318,30 @@ const Index = () => {
                   <li className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-sm">
+                      <strong>Envio para grupos</strong> do WhatsApp
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">
+                      <strong>Sistema de tags</strong> para segmentação
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">
+                      <strong>Calendário de aniversários</strong> com lembretes
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">
+                      <strong>Importação/Exportação</strong> de contatos via planilha
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">
                       <strong>Suporte prioritário</strong> via WhatsApp
                     </span>
                   </li>
@@ -365,6 +407,28 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">
                   Convide clientes para eventos, webinars, workshops e promoções especiais com mensagens personalizadas
                   e profissionais.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Comunicação em Grupos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Envie mensagens para grupos do WhatsApp de forma organizada, ideal para comunicação com equipes, 
+                  comunidades e grupos de clientes.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="text-lg">Aniversariantes do Mês</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Nunca esqueça um aniversário! Visualize calendário de aniversários e envie mensagens personalizadas 
+                  automaticamente para seus clientes.
                 </p>
               </CardContent>
             </Card>
