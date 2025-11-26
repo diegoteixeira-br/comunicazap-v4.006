@@ -28,11 +28,24 @@ export const SupportChat = () => {
     }
   }, [isOpen]);
 
+  // Auto-scroll quando mensagens mudam
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Limpar histórico local quando o usuário deslogar
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setMessages([]);
+        setHistoryLoaded(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const loadChatHistory = async () => {
     try {
@@ -188,7 +201,21 @@ export const SupportChat = () => {
     }
   };
 
-  const handleClearHistory = () => {
+  const handleClearHistory = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Deletar do banco de dados
+        await supabase
+          .from('support_chat_messages')
+          .delete()
+          .eq('user_id', user.id);
+      }
+    } catch (error) {
+      console.error('Erro ao limpar histórico:', error);
+    }
+    
+    // Limpar estado local
     setMessages([{
       role: 'assistant',
       content: 'Olá! Sou o assistente do ComunicaZap. Como posso ajudar você hoje?'
