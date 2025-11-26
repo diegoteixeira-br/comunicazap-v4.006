@@ -31,7 +31,7 @@ COMO FUNCIONA A PLATAFORMA:
 
 📱 CONECTAR WHATSAPP:
 1. Dashboard → card "Conectar WhatsApp"
-2. Digite um nome para a instância
+2. Clique em "Gerar QR Code"
 3. Escaneie o QR Code com seu WhatsApp
 4. Aguarde confirmação (aparece ✅ Conectado)
 
