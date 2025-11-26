@@ -27,7 +27,6 @@ import { supabase } from "@/integrations/supabase/sessionClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RiskScoreCard } from "@/components/RiskScoreCard";
 
 const Results = () => {
   const navigate = useNavigate();
@@ -62,10 +61,6 @@ const Results = () => {
   const [blockedContacts, setBlockedContacts] = useState<Set<string>>(new Set());
   const [loadingBlocked, setLoadingBlocked] = useState(true);
   const [showWhatsAppPhone, setShowWhatsAppPhone] = useState(true);
-  
-  // Daily limit tracking
-  const [dailyLimit, setDailyLimit] = useState({ sent: 0, limit: 50, remaining: 50 });
-  const [loadingDailyLimit, setLoadingDailyLimit] = useState(true);
   
   // Detectar se estamos trabalhando com grupos
   const isWorkingWithGroups = clients.some(c => c["Telefone do Cliente"].includes('@g.us'));
@@ -230,38 +225,6 @@ const Results = () => {
     const hasAgreed = localStorage.getItem("agreedToBestPractices");
     setAgreedToBestPractices(hasAgreed === "true");
   }, []);
-
-  // Fetch daily limit
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchDailyLimit = async () => {
-      setLoadingDailyLimit(true);
-      try {
-        const { data, error } = await supabase.rpc('get_daily_limit', {
-          p_user_id: user.id
-        });
-
-        if (error) throw error;
-
-        if (data && data.length > 0) {
-          setDailyLimit({
-            sent: data[0].messages_sent || 0,
-            limit: data[0].limit_value || 50,
-            remaining: data[0].remaining || 50
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching daily limit:', error);
-        // Default values on error
-        setDailyLimit({ sent: 0, limit: 50, remaining: 50 });
-      } finally {
-        setLoadingDailyLimit(false);
-      }
-    };
-
-    fetchDailyLimit();
-  }, [user]);
 
   // Carregar contatos bloqueados
   useEffect(() => {
@@ -587,14 +550,6 @@ const Results = () => {
       return;
     }
 
-    // Verificar limite diário
-    if (dailyLimit.remaining <= 0) {
-      toast.error("Limite diário atingido", {
-        description: `Você já enviou ${dailyLimit.sent} mensagens hoje. Limite diário: ${dailyLimit.limit}. Aguarde até amanhã.`
-      });
-      return;
-    }
-
     if (!whatsappInstance) {
       toast.error("WhatsApp não conectado");
       navigate("/connect-whatsapp");
@@ -619,28 +574,19 @@ const Results = () => {
       toast.warning(`${blockedCount} contato(s) bloqueado(s) será(ão) ignorado(s)`);
     }
 
-    // Limitar pelo restante do limite diário
-    const clientsToSend = availableClients.slice(0, dailyLimit.remaining);
-    
-    if (availableClients.length > dailyLimit.remaining) {
-      toast.warning(`Limite diário: enviando apenas ${dailyLimit.remaining} de ${availableClients.length} contatos`, {
-        description: "Os demais serão ignorados. Aguarde até amanhã para enviar mais."
-      });
-    }
-
     const campaignName = `Envio em massa - ${new Date().toLocaleString('pt-BR')}`;
 
     setIsSending(true);
-    setCampaignProgress({ sent: 0, failed: 0, total: clientsToSend.length });
+    setCampaignProgress({ sent: 0, failed: 0, total: availableClients.length });
     setMessageLogs([]);
     setSendingStatus({}); // Resetar status
 
     toast.info("Iniciando envio...", {
-      description: `Enviando para ${clientsToSend.length} contato(s)`
+      description: `Enviando para ${availableClients.length} contato(s)`
     });
 
     try {
-      const clientsData = clientsToSend.map(client => ({
+      const clientsData = availableClients.map(client => ({
         "Nome do Cliente": client["Nome do Cliente"],
         "Telefone do Cliente": client["Telefone do Cliente"]
       }));
@@ -697,13 +643,6 @@ const Results = () => {
       if (data?.success) {
         // Ativar monitoramento em tempo real
         setActiveCampaignId(data.campaign);
-        
-        // Atualizar limite diário localmente
-        setDailyLimit(prev => ({
-          ...prev,
-          sent: prev.sent + clientsToSend.length,
-          remaining: Math.max(0, prev.remaining - clientsToSend.length)
-        }));
         
         toast.info("Enviando mensagens...", {
           description: "Acompanhe o progresso abaixo"
@@ -999,12 +938,12 @@ const Results = () => {
                 </div>
 
                 <div className="border-l-4 border-primary pl-4">
-                  <h4 className="font-semibold text-lg mb-2">5. Respeite o Delay e os Limites</h4>
+                  <h4 className="font-semibold text-lg mb-2">5. Respeite o Delay (Seja Humano)</h4>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Nosso sistema usa delay aleatório de 30-45 segundos entre mensagens para simular comportamento humano.
+                    Nosso sistema envia as mensagens com um intervalo de 1 segundo entre cada contato. Não tente apressar o processo.
                   </p>
                   <p className="text-sm">
-                    <strong>Limite diário:</strong> Recomendamos enviar no máximo 50 mensagens por dia. Isso ajuda a manter sua conta segura e evita bloqueios do WhatsApp.
+                    O delay de 1 segundo garante envios mais rápidos mantendo a segurança da sua conta.
                   </p>
                 </div>
               </div>
@@ -1498,15 +1437,6 @@ const Results = () => {
                   </Card>
                 )}
               </div>
-            )}
-
-            {/* Risk Score Card */}
-            {!loadingDailyLimit && !isWorkingWithGroups && (
-              <RiskScoreCard
-                contactCount={availableClientsCount}
-                dailyLimit={dailyLimit.limit}
-                alreadySentToday={dailyLimit.sent}
-              />
             )}
 
             {/* Client List */}

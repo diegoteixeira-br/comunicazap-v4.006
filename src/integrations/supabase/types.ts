@@ -109,36 +109,6 @@ export type Database = {
           },
         ]
       }
-      daily_send_limits: {
-        Row: {
-          created_at: string | null
-          date: string
-          id: string
-          limit_value: number
-          messages_sent: number
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          date?: string
-          id?: string
-          limit_value?: number
-          messages_sent?: number
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          date?: string
-          id?: string
-          limit_value?: number
-          messages_sent?: number
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       message_campaigns: {
         Row: {
           campaign_name: string | null
@@ -424,24 +394,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_daily_limit: {
-        Args: { p_user_id: string }
-        Returns: {
-          limit_value: number
-          messages_sent: number
-          remaining: number
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
-      }
-      increment_daily_sent: {
-        Args: { p_count?: number; p_user_id: string }
-        Returns: undefined
       }
       increment_failed_count: {
         Args: { campaign_id: string }
