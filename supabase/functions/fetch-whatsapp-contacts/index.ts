@@ -66,8 +66,9 @@ serve(async (req) => {
       );
     }
 
+    // Use findChats endpoint to get all conversations
     const response = await fetch(
-      `${evolutionApiUrl}/chat/findContacts/${instance.instance_name}`,
+      `${evolutionApiUrl}/chat/findChats/${instance.instance_name}`,
       {
         method: 'POST',
         headers: {
@@ -89,38 +90,30 @@ serve(async (req) => {
     const rawContacts = await response.json();
     console.log('Raw contacts received:', rawContacts.length || 0);
     
-    // Log first contact structure for debugging
+    // Log first chat structure for debugging
     if (rawContacts.length > 0) {
-      console.log('Sample contact structure:', JSON.stringify(rawContacts[0]));
+      console.log('Sample chat structure:', JSON.stringify(rawContacts[0]));
+      console.log('Available fields:', Object.keys(rawContacts[0]));
     }
 
     // Process and clean contacts
     const contacts: Contact[] = [];
     
     for (const chat of rawContacts) {
+      // Get chat ID from available fields
+      const chatId = chat.id || chat.remoteJid || '';
+      
       // Skip groups (groups have @g.us suffix)
-      if (chat.id && (chat.id.includes('@g.us') || chat.remoteJid?.includes('@g.us'))) {
+      if (chatId.includes('@g.us')) {
+        console.log('Skipping group:', chatId);
         continue;
       }
 
-      // Extract phone number - try multiple possible fields
-      let phone = '';
+      // Extract phone number from chat ID (format: 5565XXXXXXXX@s.whatsapp.net)
+      let phone = chatId.replace('@s.whatsapp.net', '').replace('@c.us', '');
       
-      // Try remoteJid field first (most reliable)
-      if (chat.remoteJid && typeof chat.remoteJid === 'string') {
-        phone = chat.remoteJid.replace('@s.whatsapp.net', '');
-      }
-      // Try id field as fallback
-      else if (chat.id && typeof chat.id === 'string' && chat.id.includes('@')) {
-        phone = chat.id.replace('@s.whatsapp.net', '');
-      }
-      // Try number field
-      else if (chat.number) {
-        phone = chat.number.toString();
-      }
-      
-      // Get contact name
-      let name = chat.name || chat.pushName || chat.notifyName || phone;
+      // Get contact name from various possible fields
+      let name = chat.name || chat.pushName || chat.subject || chat.notifyName || phone;
       
       // Only add if we have a valid phone number (should be numeric and reasonable length)
       if (phone && phone.length >= 10 && /^\d+$/.test(phone)) {
@@ -128,6 +121,8 @@ serve(async (req) => {
           name: name,
           phone: phone
         });
+      } else {
+        console.log('Invalid phone number:', phone, 'from chatId:', chatId);
       }
     }
 
