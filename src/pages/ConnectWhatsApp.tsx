@@ -4,13 +4,15 @@ import { supabase } from '@/integrations/supabase/sessionClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 
 const ConnectWhatsApp = () => {
   const [qrCode, setQrCode] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(45);
+  const [qrExpired, setQrExpired] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +28,22 @@ const ConnectWhatsApp = () => {
       return () => clearInterval(interval);
     }
   }, [qrCode, connected]);
+
+  // Timer countdown for QR code expiration
+  useEffect(() => {
+    if (qrCode && !connected && !qrExpired) {
+      const countdown = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            setQrExpired(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(countdown);
+    }
+  }, [qrCode, connected, qrExpired]);
 
   const checkSession = async () => {
     try {
@@ -67,6 +85,8 @@ const ConnectWhatsApp = () => {
 
       if (data.success) {
         setQrCode(data.qrCode);
+        setTimeLeft(45);
+        setQrExpired(false);
         toast({
           title: "QR Code gerado!",
           description: "Escaneie o código com seu WhatsApp",
@@ -136,12 +156,41 @@ const ConnectWhatsApp = () => {
     }
   };
 
+  const handleBackToDashboard = async () => {
+    // Se tem QR Code mas não está conectado, deletar a instância
+    if (qrCode && !connected) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          await supabase.functions.invoke('delete-whatsapp-instance', {
+            body: {},
+            headers: {
+              Authorization: `Bearer ${sessionData.session.access_token}`,
+            },
+          });
+          console.log('Instância deletada ao voltar');
+        }
+      } catch (error) {
+        console.warn('Erro ao deletar instância:', error);
+        // Continua navegando mesmo se falhar
+      }
+    }
+    navigate('/dashboard');
+  };
+
+  const regenerateQrCode = async () => {
+    setQrExpired(false);
+    setTimeLeft(45);
+    setQrCode('');
+    await createInstance();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10 p-3 sm:p-4">
       <div className="max-w-2xl mx-auto">
         <Button
           variant="ghost"
-          onClick={() => navigate('/dashboard')}
+          onClick={handleBackToDashboard}
           className="mb-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -181,27 +230,56 @@ const ConnectWhatsApp = () => {
 
               {qrCode && !connected && (
                 <div className="space-y-4 w-full">
-                  <div className="bg-white p-3 sm:p-4 rounded-lg shadow-lg">
-                    <img
-                      src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
-                      alt="QR Code"
-                      className="w-full max-w-xs sm:max-w-sm mx-auto"
-                    />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-2">
-                      1. Abra o WhatsApp no seu celular<br />
-                      2. Toque em Mais opções &gt; Dispositivos conectados<br />
-                      3. Toque em Conectar dispositivo<br />
-                      4. Aponte seu celular para esta tela
-                    </p>
-                    {checking && (
-                      <div className="flex items-center justify-center gap-2 text-primary">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Verificando conexão...</span>
+                  {!qrExpired ? (
+                    <>
+                      <div className="bg-white p-3 sm:p-4 rounded-lg shadow-lg">
+                        <img
+                          src={qrCode.startsWith('data:') ? qrCode : `data:image/png;base64,${qrCode}`}
+                          alt="QR Code"
+                          className="w-full max-w-xs sm:max-w-sm mx-auto"
+                        />
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-center justify-center gap-2 text-amber-600">
+                        <Clock className="h-4 w-4" />
+                        <span className="text-sm font-medium">Expira em {timeLeft}s</span>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                          1. Abra o WhatsApp no seu celular<br />
+                          2. Toque em Mais opções &gt; Dispositivos conectados<br />
+                          3. Toque em Conectar dispositivo<br />
+                          4. Aponte seu celular para esta tela
+                        </p>
+                        {checking && (
+                          <div className="flex items-center justify-center gap-2 text-primary">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">Verificando conexão...</span>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center space-y-4 py-8">
+                      <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+                      <p className="text-amber-600 font-medium">QR Code expirado</p>
+                      <p className="text-sm text-muted-foreground">
+                        O QR Code expirou. Gere um novo para conectar.
+                      </p>
+                      <Button onClick={regenerateQrCode} disabled={loading} size="lg">
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Gerando...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Gerar Novo QR Code
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
