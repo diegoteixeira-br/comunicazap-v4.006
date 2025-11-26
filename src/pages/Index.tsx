@@ -314,7 +314,7 @@ const Index = () => {
                   <li className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-sm">
-                      <strong>Suporte prioritário</strong> via WhatsApp
+                      <strong>Suporte prioritário</strong> via chat na plataforma
                     </span>
                   </li>
                 </ul>
@@ -358,12 +358,12 @@ const Index = () => {
             </Card>
             <Card className="border-border/50">
               <CardHeader>
-                <CardTitle className="text-lg">Atendimento ao Cliente</CardTitle>
+                <CardTitle className="text-lg">Recuperação de Clientes</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Envie atualizações de status, respostas a dúvidas frequentes e mensagens de boas-vindas para novos
-                  clientes de forma organizada.
+                  Reative clientes inativos com campanhas personalizadas, ofertas especiais e mensagens de 
+                  reconquista para aumentar suas vendas.
                 </p>
               </CardContent>
             </Card>
