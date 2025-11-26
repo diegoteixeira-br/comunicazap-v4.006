@@ -4,16 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Calendar, TrendingUp, Users, MessageSquare, CheckCircle, XCircle, Activity } from 'lucide-react';
+import { Calendar, TrendingUp, Users, MessageSquare, CheckCircle, XCircle, Activity, AlertTriangle, BarChart3 } from 'lucide-react';
 
 interface UsageData {
   totalMessages: number;
   successRate: number;
   totalContacts: number;
   activeCampaigns: number;
+  blockRate: number;
   messagesByDay: Array<{ date: string; sent: number; failed: number }>;
   messagesByStatus: Array<{ name: string; value: number }>;
   campaignPerformance: Array<{ name: string; sent: number; failed: number }>;
+  dailyHistory: Array<{ 
+    date: string; 
+    sent: number; 
+    limit: number; 
+    usage: number;
+  }>;
 }
 
 export const UsageStats = ({ userId }: { userId: string }) => {
@@ -23,9 +30,11 @@ export const UsageStats = ({ userId }: { userId: string }) => {
     successRate: 0,
     totalContacts: 0,
     activeCampaigns: 0,
+    blockRate: 0,
     messagesByDay: [],
     messagesByStatus: [],
-    campaignPerformance: []
+    campaignPerformance: [],
+    dailyHistory: []
   });
 
   useEffect(() => {
@@ -49,6 +58,17 @@ export const UsageStats = ({ userId }: { userId: string }) => {
         .select('id, status')
         .eq('user_id', userId);
 
+      // Buscar histórico de limites diários (últimos 30 dias)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: dailyLimits } = await supabase
+        .from('daily_send_limits')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('date', { ascending: true });
+
       if (!campaigns) {
         setLoading(false);
         return;
@@ -59,6 +79,7 @@ export const UsageStats = ({ userId }: { userId: string }) => {
       const totalFailed = campaigns.reduce((acc, c) => acc + (c.failed_count || 0), 0);
       const totalMessages = totalSent + totalFailed;
       const successRate = totalMessages > 0 ? (totalSent / totalMessages) * 100 : 0;
+      const blockRate = totalMessages > 0 ? (totalFailed / totalMessages) * 100 : 0;
 
       // Agrupar mensagens por dia (últimos 30 dias)
       const messagesByDay = campaigns
@@ -103,14 +124,28 @@ export const UsageStats = ({ userId }: { userId: string }) => {
         }))
         .reverse();
 
+      // Histórico diário de limites
+      const dailyHistory = (dailyLimits || []).map(limit => {
+        const date = new Date(limit.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        const usage = limit.limit_value > 0 ? (limit.messages_sent / limit.limit_value) * 100 : 0;
+        return {
+          date,
+          sent: limit.messages_sent,
+          limit: limit.limit_value,
+          usage: Math.round(usage)
+        };
+      });
+
       setData({
         totalMessages,
         successRate,
+        blockRate,
         totalContacts: contacts?.length || 0,
         activeCampaigns: campaigns.filter(c => c.status === 'running').length,
         messagesByDay,
         messagesByStatus,
-        campaignPerformance
+        campaignPerformance,
+        dailyHistory
       });
     } catch (error) {
       console.error('Error fetching usage data:', error);
@@ -144,7 +179,7 @@ export const UsageStats = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-6">
       {/* Métricas principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-primary/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
@@ -168,6 +203,19 @@ export const UsageStats = ({ userId }: { userId: string }) => {
           <CardContent>
             <p className="text-3xl font-bold text-green-600">{data.successRate.toFixed(1)}%</p>
             <p className="text-xs text-muted-foreground mt-1">Mensagens entregues</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-500/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+              <AlertTriangle className="h-4 w-4" />
+              Taxa de Bloqueio
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold text-red-600">{data.blockRate.toFixed(1)}%</p>
+            <p className="text-xs text-muted-foreground mt-1">Mensagens com falha</p>
           </CardContent>
         </Card>
 
@@ -200,8 +248,9 @@ export const UsageStats = ({ userId }: { userId: string }) => {
 
       {/* Gráficos */}
       <Tabs defaultValue="timeline" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="timeline">Linha do Tempo</TabsTrigger>
+          <TabsTrigger value="daily">Histórico Diário</TabsTrigger>
           <TabsTrigger value="distribution">Distribuição</TabsTrigger>
           <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
         </TabsList>
@@ -251,6 +300,67 @@ export const UsageStats = ({ userId }: { userId: string }) => {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="daily" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Histórico de Envios Diários
+              </CardTitle>
+              <CardDescription>
+                Uso do limite diário nos últimos 30 dias
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.dailyHistory.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={data.dailyHistory}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="date" 
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                    />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value, name) => {
+                        if (name === 'usage') return [`${value}%`, 'Uso do Limite'];
+                        if (name === 'sent') return [value, 'Enviadas'];
+                        if (name === 'limit') return [value, 'Limite'];
+                        return [value, name];
+                      }}
+                    />
+                    <Legend />
+                    <Bar 
+                      dataKey="sent" 
+                      fill="hsl(var(--primary))" 
+                      name="Mensagens Enviadas"
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar 
+                      dataKey="limit" 
+                      fill="hsl(var(--muted))" 
+                      name="Limite Diário"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mb-4 opacity-50" />
+                  <p className="text-sm">Nenhum histórico de envios disponível</p>
+                  <p className="text-xs mt-1">Comece a enviar mensagens para ver suas estatísticas</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
