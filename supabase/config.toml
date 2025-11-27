@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.support-chat]
 verify_jwt = true
+
+[functions.send-messages]
+verify_jwt = true
+
+[functions.generate-variations]
+verify_jwt = true
