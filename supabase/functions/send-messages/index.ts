@@ -197,9 +197,23 @@ serve(async (req) => {
       }
     }
 
+    // Funções de delay para simular comportamento humano
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    const getRandomDelay = (min: number, max: number) => {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    // Configurações anti-banimento
+    const BATCH_SIZE = 25; // Mensagens por lote
+    const MIN_DELAY_BETWEEN_MESSAGES = 1000; // 1 segundo
+    const MAX_DELAY_BETWEEN_MESSAGES = 3000; // 3 segundos
+    const MIN_BATCH_PAUSE = 60000; // 60 segundos (1 minuto)
+    const MAX_BATCH_PAUSE = 120000; // 120 segundos (2 minutos)
+
     const results = [];
 
-    // Enviar mensagens sequencialmente com delay
+    // Enviar mensagens sequencialmente com delay inteligente
     for (let i = 0; i < clients.length; i++) {
       const client = clients[i];
       
@@ -324,6 +338,20 @@ serve(async (req) => {
         });
 
         results.push({ success: false, client: client["Nome do Cliente"], error: error.message });
+      }
+
+      // Delay inteligente entre mensagens
+      if (i < clients.length - 1) {
+        const delay = getRandomDelay(MIN_DELAY_BETWEEN_MESSAGES, MAX_DELAY_BETWEEN_MESSAGES);
+        console.log(`⏱️ Aguardando ${delay/1000}s antes da próxima mensagem...`);
+        await sleep(delay);
+        
+        // Pausa maior a cada lote de mensagens
+        if ((i + 1) % BATCH_SIZE === 0) {
+          const batchPause = getRandomDelay(MIN_BATCH_PAUSE, MAX_BATCH_PAUSE);
+          console.log(`🔄 Pausa de lote: ${batchPause/1000}s (${i + 1}/${clients.length} enviadas)`);
+          await sleep(batchPause);
+        }
       }
     }
 

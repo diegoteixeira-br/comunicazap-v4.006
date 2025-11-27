@@ -61,6 +61,7 @@ const Results = () => {
   const [blockedContacts, setBlockedContacts] = useState<Set<string>>(new Set());
   const [loadingBlocked, setLoadingBlocked] = useState(true);
   const [showWhatsAppPhone, setShowWhatsAppPhone] = useState(true);
+  const [generatingVariations, setGeneratingVariations] = useState(false);
   
   // Detectar se estamos trabalhando com grupos
   const isWorkingWithGroups = clients.some(c => c["Telefone do Cliente"].includes('@g.us'));
@@ -862,6 +863,68 @@ const Results = () => {
     }
   };
 
+  const handleGenerateVariations = async () => {
+    const firstVariation = messageVariations[0].trim();
+    
+    if (!firstVariation) {
+      toast.error("Escreva a primeira variação antes de gerar automaticamente");
+      return;
+    }
+
+    if (firstVariation.length < 10) {
+      toast.error("A primeira variação precisa ter pelo menos 10 caracteres");
+      return;
+    }
+
+    setGeneratingVariations(true);
+    
+    try {
+      toast.info("Gerando variações com IA...", {
+        description: "Isso pode levar alguns segundos"
+      });
+
+      const { data, error } = await supabase.functions.invoke('generate-variations', {
+        body: { originalMessage: firstVariation }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.success && data.variations) {
+        const newVariations = [...messageVariations];
+        // data.variations[0] é a original, [1] e [2] são as novas
+        if (data.variations[1]) newVariations[1] = data.variations[1];
+        if (data.variations[2]) newVariations[2] = data.variations[2];
+        
+        setMessageVariations(newVariations);
+        
+        toast.success("Variações geradas com sucesso! ✨", {
+          description: "Você pode editar as variações geradas se desejar"
+        });
+      } else {
+        throw new Error(data?.error || 'Falha ao gerar variações');
+      }
+    } catch (error: any) {
+      console.error('Erro ao gerar variações:', error);
+      
+      let errorMessage = "Tente novamente";
+      if (error.message?.includes("taxa")) {
+        errorMessage = "Limite de requisições atingido. Aguarde um momento.";
+      } else if (error.message?.includes("créditos") || error.message?.includes("Créditos")) {
+        errorMessage = "Créditos insuficientes. Adicione créditos à sua conta Lovable.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error("Erro ao gerar variações", {
+        description: errorMessage
+      });
+    } finally {
+      setGeneratingVariations(false);
+    }
+  };
+
   if (authLoading || loadingInstance) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 flex items-center justify-center">
@@ -1147,13 +1210,61 @@ const Results = () => {
             {/* Message Variations Section */}
             <Card className="shadow-elevated">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Send className="h-5 w-5" />
-                  Mensagem Personalizada com Variações
-                </CardTitle>
-                <CardDescription>
-                  Crie até 3 variações de mensagem para parecer mais humano
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Send className="h-5 w-5" />
+                      Mensagem Personalizada com Variações
+                    </CardTitle>
+                    <CardDescription>
+                      Crie até 3 variações de mensagem para parecer mais humano
+                    </CardDescription>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleGenerateVariations}
+                        disabled={!messageVariations[0].trim() || generatingVariations || isSending}
+                        variant="default"
+                        size="sm"
+                        className="hidden sm:flex"
+                      >
+                        {generatingVariations ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                            Gerando...
+                          </>
+                        ) : (
+                          <>
+                            ✨ Gerar com IA
+                          </>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Gera automaticamente as variações 2 e 3 baseadas na variação 1</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                {/* Botão mobile */}
+                <Button
+                  onClick={handleGenerateVariations}
+                  disabled={!messageVariations[0].trim() || generatingVariations || isSending}
+                  variant="default"
+                  size="sm"
+                  className="w-full sm:hidden mt-3"
+                >
+                  {generatingVariations ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
+                      Gerando Variações...
+                    </>
+                  ) : (
+                    <>
+                      ✨ Gerar Variações com IA
+                    </>
+                  )}
+                </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Abas de Variações */}
