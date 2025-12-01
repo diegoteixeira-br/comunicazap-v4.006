@@ -2,7 +2,7 @@ export interface MessageTemplate {
   id: string;
   title: string;
   message: string;
-  category: "saudacao" | "lembrete" | "promocao" | "agradecimento" | "opt-in" | "aniversario" | "personalizado";
+  category: "saudacao" | "lembrete" | "promocao" | "agradecimento" | "opt-in" | "aniversario" | "comemorativo" | "personalizado";
   isCustom: boolean;
   createdAt?: string;
 }
@@ -121,6 +121,51 @@ Equipe`,
     category: "aniversario",
     isCustom: false,
   },
+  {
+    id: "natal-calorosa",
+    title: "Feliz Natal - Calorosa",
+    message: `🎄 Feliz Natal, {nome}! 🎄
+
+Que neste Natal a paz, o amor e a alegria preencham seu coração e de toda sua família!
+
+Desejamos que este momento especial seja repleto de boas memórias, abraços calorosos e muita gratidão.
+
+Boas Festas!
+Com carinho,
+Equipe`,
+    category: "comemorativo",
+    isCustom: false,
+  },
+  {
+    id: "ano-novo-prospero",
+    title: "Feliz Ano Novo - Próspero",
+    message: `🎆 Feliz Ano Novo, {nome}! 🎆
+
+Que 2025 seja um ano de muitas conquistas, saúde e prosperidade para você!
+
+Que todos os seus sonhos se realizem e que cada dia traga novas oportunidades de crescimento e felicidade.
+
+Um brinde ao novo ano! 🥂
+Abraços,
+Equipe`,
+    category: "comemorativo",
+    isCustom: false,
+  },
+  {
+    id: "boas-festas-generica",
+    title: "Boas Festas - Genérica",
+    message: `✨ Olá, {nome}! ✨
+
+Chegamos ao fim de mais um ano e queremos agradecer pela sua confiança e parceria!
+
+Desejamos a você e sua família um final de ano repleto de momentos especiais, paz e muita felicidade.
+
+Boas Festas e um próspero Ano Novo! 🎊
+Com carinho,
+Equipe`,
+    category: "comemorativo",
+    isCustom: false,
+  },
 ];
 
 export const getCustomTemplates = (): MessageTemplate[] => {
@@ -190,6 +235,7 @@ export const getCategoryIcon = (category: MessageTemplate["category"]): string =
     case "promocao": return "🎁";
     case "agradecimento": return "💚";
     case "aniversario": return "🎂";
+    case "comemorativo": return "🎄";
     case "personalizado": return "✏️";
     default: return "📝";
   }
@@ -203,6 +249,7 @@ export const getCategoryLabel = (category: MessageTemplate["category"]): string 
     case "promocao": return "Promoção";
     case "agradecimento": return "Agradecimento";
     case "aniversario": return "Aniversário";
+    case "comemorativo": return "Comemorativo";
     case "personalizado": return "Personalizado";
     default: return "Outros";
   }
