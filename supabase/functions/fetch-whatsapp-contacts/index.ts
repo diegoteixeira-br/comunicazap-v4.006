@@ -121,6 +121,11 @@ serve(async (req) => {
     console.log('Saved contacts received:', savedContacts.length || 0);
     console.log('Recent chats received:', recentChats.length || 0);
 
+    // Log sample contact structure for debugging
+    if (savedContacts.length > 0) {
+      console.log('Sample contact structure:', JSON.stringify(savedContacts[0], null, 2));
+    }
+
     // Use Map to avoid duplicates
     const contactsMap = new Map<string, Contact>();
     
@@ -129,10 +134,20 @@ serve(async (req) => {
     
     // Process saved contacts first (priority)
     for (const contact of savedContacts) {
-      const chatId = contact.id || '';
+      // Use remoteJid (WhatsApp ID) instead of internal id
+      const chatId = contact.remoteJid || contact.owner || contact.id || '';
       
       // Skip groups
       if (chatId.includes('@g.us')) continue;
+
+      // Skip if doesn't look like a valid WhatsApp ID
+      if (!chatId.includes('@') && !chatId.match(/^\d{10,}/)) {
+        rejectedContacts++;
+        if (rejectedContacts <= 5) {
+          console.log('Rejected invalid chatId:', { chatId, contactId: contact.id });
+        }
+        continue;
+      }
 
       // Extract phone number - remove WhatsApp suffixes and clean
       let phone = chatId
@@ -144,19 +159,19 @@ serve(async (req) => {
       phone = phone.replace(/\D/g, '');
       
       // Get contact name (pushName tem prioridade)
-      let name = contact.pushName || contact.name || phone;
+      let name = contact.pushName || contact.name || contact.verifiedName || phone;
       
       // Log first few contacts for debugging
       if (acceptedContacts + rejectedContacts < 5) {
         console.log('Processing contact:', { 
-          originalId: contact.id, 
+          originalChatId: chatId,
           extractedPhone: phone,
           name: name 
         });
       }
       
-      // More flexible validation - accept 8+ digits
-      if (phone && phone.length >= 8 && /^\d{8,}$/.test(phone)) {
+      // Validate phone number (at least 10 digits)
+      if (phone && phone.length >= 10 && /^\d{10,}$/.test(phone)) {
         // Normalize phone to include country code
         const normalizedPhone = normalizePhone(phone);
         
@@ -174,7 +189,7 @@ serve(async (req) => {
       } else {
         rejectedContacts++;
         if (rejectedContacts <= 5) {
-          console.log('Rejected contact sample:', { id: contact.id, phone });
+          console.log('Rejected contact sample:', { chatId, phone, reason: 'invalid length or format' });
         }
       }
     }
