@@ -35,7 +35,8 @@ import {
   Send,
   CheckSquare,
   Shuffle,
-  ChevronDown
+  ChevronDown,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -99,6 +100,9 @@ const Contacts = () => {
   // Estados para seleção avançada
   const [showRandomDialog, setShowRandomDialog] = useState(false);
   const [randomQuantity, setRandomQuantity] = useState(50);
+  const [contactedToday, setContactedToday] = useState<Set<string>>(new Set());
+  const [availableCount, setAvailableCount] = useState(0);
+  const [loadingContacted, setLoadingContacted] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -118,7 +122,7 @@ const Contacts = () => {
         .from('contacts')
         .select('*')
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('name', { ascending: true, nullsFirst: false });
 
       if (error) throw error;
 
@@ -425,11 +429,67 @@ const Contacts = () => {
     setSelectedContacts(new Set(pageContacts.map(c => c.id)));
   };
 
+  // Buscar contatos que já receberam disparo hoje
+  const fetchContactedToday = async (): Promise<Set<string>> => {
+    if (!user?.id) return new Set();
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Buscar campanhas do usuário
+    const { data: campaigns } = await supabase
+      .from('message_campaigns')
+      .select('id')
+      .eq('user_id', user.id);
+    
+    if (!campaigns || campaigns.length === 0) return new Set();
+    
+    // Buscar telefones que já receberam disparo hoje
+    const { data: logs } = await supabase
+      .from('message_logs')
+      .select('client_phone')
+      .in('campaign_id', campaigns.map(c => c.id))
+      .eq('status', 'sent')
+      .gte('sent_at', today.toISOString());
+    
+    return new Set(logs?.map(log => log.client_phone) || []);
+  };
+
+  // Abrir dialog de seleção aleatória com dados atualizados
+  const openRandomDialog = async () => {
+    setShowRandomDialog(true);
+    setLoadingContacted(true);
+    
+    const contacted = await fetchContactedToday();
+    setContactedToday(contacted);
+    
+    // Calcular quantos contatos estão disponíveis (não disparados hoje)
+    const available = filteredContacts.filter(c => !contacted.has(c.phone_number));
+    setAvailableCount(available.length);
+    setRandomQuantity(Math.min(50, available.length));
+    
+    setLoadingContacted(false);
+  };
+
   const selectRandom = (quantity: number) => {
-    const shuffled = [...filteredContacts].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, Math.min(quantity, filteredContacts.length));
+    // Filtrar contatos que NÃO foram disparados hoje
+    const availableContacts = filteredContacts.filter(
+      c => !contactedToday.has(c.phone_number)
+    );
+    
+    // Embaralhar e selecionar
+    const shuffled = [...availableContacts].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, Math.min(quantity, availableContacts.length));
+    
     setSelectedContacts(new Set(selected.map(c => c.id)));
     setShowRandomDialog(false);
+    
+    toast({
+      title: `${selected.length} contatos selecionados`,
+      description: contactedToday.size > 0 
+        ? `${contactedToday.size} contatos já disparados hoje foram excluídos`
+        : "Seleção aleatória realizada com sucesso"
+    });
   };
 
   const clearSelection = () => {
@@ -773,7 +833,7 @@ const Contacts = () => {
                       <CheckSquare className="mr-2 h-4 w-4" />
                       Selecionar Página ({Math.min(itemsPerPage, filteredContacts.length - (currentPage - 1) * itemsPerPage)})
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowRandomDialog(true)}>
+                    <DropdownMenuItem onClick={openRandomDialog}>
                       <Shuffle className="mr-2 h-4 w-4" />
                       Seleção Aleatória
                     </DropdownMenuItem>
@@ -1101,20 +1161,41 @@ const Contacts = () => {
                 Seleção Aleatória
               </DialogTitle>
               <DialogDescription>
-                Escolha quantos contatos deseja selecionar aleatoriamente dos {filteredContacts.length} filtrados
+                Seleciona contatos aleatoriamente, excluindo os que já receberam disparo hoje
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
+              {/* Informações de disponibilidade */}
+              <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
+                {loadingContacted ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Verificando disparos de hoje...</span>
+                  </div>
+                ) : (
+                  <>
+                    <p>📊 <strong>{availableCount}</strong> contatos disponíveis</p>
+                    {contactedToday.size > 0 && (
+                      <p>✅ <strong>{contactedToday.size}</strong> já receberam disparo hoje</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Contatos já disparados hoje são excluídos automaticamente
+                    </p>
+                  </>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="random-quantity">Quantidade</Label>
                 <Input
                   id="random-quantity"
                   type="number"
                   min={1}
-                  max={filteredContacts.length}
+                  max={availableCount}
                   value={randomQuantity}
-                  onChange={(e) => setRandomQuantity(Math.max(1, Math.min(parseInt(e.target.value) || 1, filteredContacts.length)))}
+                  onChange={(e) => setRandomQuantity(Math.max(1, Math.min(parseInt(e.target.value) || 1, availableCount)))}
+                  disabled={loadingContacted || availableCount === 0}
                 />
               </div>
               
@@ -1126,8 +1207,8 @@ const Contacts = () => {
                       key={qty}
                       variant={randomQuantity === qty ? "default" : "outline"}
                       size="sm"
-                      onClick={() => setRandomQuantity(Math.min(qty, filteredContacts.length))}
-                      disabled={qty > filteredContacts.length}
+                      onClick={() => setRandomQuantity(Math.min(qty, availableCount))}
+                      disabled={loadingContacted || qty > availableCount}
                     >
                       {qty}
                     </Button>
@@ -1140,7 +1221,10 @@ const Contacts = () => {
               <Button variant="outline" onClick={() => setShowRandomDialog(false)}>
                 Cancelar
               </Button>
-              <Button onClick={() => selectRandom(randomQuantity)}>
+              <Button 
+                onClick={() => selectRandom(randomQuantity)}
+                disabled={loadingContacted || availableCount === 0}
+              >
                 <Shuffle className="mr-2 h-4 w-4" />
                 Selecionar {randomQuantity}
               </Button>
