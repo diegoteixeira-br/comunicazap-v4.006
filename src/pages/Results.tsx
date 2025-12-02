@@ -90,9 +90,23 @@ const Results = () => {
   };
 
   const getAvailableVariationOptions = (requiredCount: number): number[] => {
-    // Gerar opções até o número necessário
-    const options = [1, 3, 5, 7, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100];
-    return options.filter(opt => opt <= requiredCount);
+    // Opções base
+    const baseOptions = [1, 3, 5, 7, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100];
+    
+    // Filtrar apenas opções >= ao necessário (não pode ter menos que o necessário)
+    const validOptions = baseOptions.filter(opt => opt >= requiredCount);
+    
+    // Se o número exato necessário não está nas opções, adicionar no início
+    if (requiredCount > 0 && !validOptions.includes(requiredCount)) {
+      validOptions.unshift(requiredCount);
+    }
+    
+    // Se não sobrou nenhuma opção, retornar pelo menos o necessário
+    if (validOptions.length === 0) {
+      return [requiredCount];
+    }
+    
+    return validOptions;
   };
 
   // Função para alterar quantidade de variações
@@ -122,10 +136,9 @@ const Results = () => {
   useEffect(() => {
     const required = getRequiredVariationCount(clients.length);
     
-    // Sugerir a quantidade necessária, mas permitir que o usuário escolha
-    if (variationCount < required && clients.length > 0) {
-      // Só ajusta se for menor que o necessário
-      handleVariationCountChange(Math.min(required, variationCount === 3 ? required : variationCount));
+    // Sempre definir para a quantidade exata necessária quando contatos mudam
+    if (clients.length > 0 && variationCount !== required) {
+      handleVariationCountChange(required);
     }
   }, [clients.length]);
 
