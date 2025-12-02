@@ -224,11 +224,17 @@ serve(async (req) => {
     }
 
     const variations = messageVariations && messageVariations.length > 0 
-      ? messageVariations 
+      ? messageVariations.filter(v => v && v.trim()) 
       : (message ? [message] : []);
 
     if (variations.length === 0 && !image) {
       throw new Error('Either message or image is required');
+    }
+
+    // VALIDAÇÃO OBRIGATÓRIA: 1 variação = máximo 5 contatos (sem repetição)
+    const requiredVariations = Math.ceil(clients.length / BATCH_SIZE);
+    if (variations.length > 0 && variations.length < requiredVariations) {
+      throw new Error(`Insufficient variations: ${variations.length} provided, ${requiredVariations} required for ${clients.length} contacts (max 5 contacts per variation)`);
     }
 
     // Calcular slice do chunk

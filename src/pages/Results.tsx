@@ -611,6 +611,20 @@ const Results = () => {
       return;
     }
 
+    // VALIDAÇÃO OBRIGATÓRIA: 1 variação = máximo 5 contatos (sem repetição)
+    const availableClientsForValidation = clients.filter(client => {
+      const phone = normalizePhone(client["Telefone do Cliente"]);
+      return !blockedContacts.has(phone);
+    });
+    const requiredVariations = Math.ceil(availableClientsForValidation.length / 5);
+    
+    if (filledVariations.length < requiredVariations) {
+      toast.error(`Variações insuficientes!`, {
+        description: `Para ${availableClientsForValidation.length} contatos, você precisa de ${requiredVariations} variações (máx. 5 contatos por variação). Você tem ${filledVariations.length}.`
+      });
+      return;
+    }
+
     if (!whatsappInstance) {
       toast.error("WhatsApp não conectado");
       navigate("/connect-whatsapp");
@@ -1408,15 +1422,29 @@ const Results = () => {
                     </Select>
                   </div>
                   
-                  {clients.length <= 10 ? (
-                    <Badge variant="secondary" className="text-xs">
-                      ✓ {clients.length} contatos não precisam de variações
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">
-                      Necessário: {getRequiredVariationCount(clients.length)} variações para {clients.length} contatos (5 por variação)
-                    </Badge>
-                  )}
+                  {(() => {
+                    const required = getRequiredVariationCount(clients.length);
+                    const filled = messageVariations.filter(v => v.trim()).length;
+                    const isValid = filled >= required;
+                    
+                    if (clients.length <= 5) {
+                      return (
+                        <Badge variant="secondary" className="text-xs">
+                          ✓ {clients.length} contatos - 1 variação suficiente
+                        </Badge>
+                      );
+                    }
+                    
+                    return isValid ? (
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        ✓ {filled}/{required} variações preenchidas
+                      </Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-xs">
+                        ⚠️ {filled}/{required} variações - Faltam {required - filled}!
+                      </Badge>
+                    );
+                  })()}
                 </div>
 
                 {/* Abas de Variações ou Textarea única */}
