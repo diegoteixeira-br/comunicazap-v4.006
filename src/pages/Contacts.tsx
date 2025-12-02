@@ -836,44 +836,123 @@ const Contacts = () => {
         ) : (
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>
-                  {filteredContacts.length} Contatos
-                  {filteredContacts.length > itemsPerPage && (
-                    <span className="text-sm text-muted-foreground ml-2">
-                      (Página {currentPage} de {Math.ceil(filteredContacts.length / itemsPerPage)})
-                    </span>
-                  )}
-                </CardTitle>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <CheckSquare className="h-4 w-4" />
-                      Selecionar
-                      {selectedContacts.size > 0 && (
-                        <Badge variant="secondary" className="ml-1">
-                          {selectedContacts.size}
-                        </Badge>
-                      )}
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover">
-                    <DropdownMenuItem onClick={selectAll}>
-                      <CheckSquare className="mr-2 h-4 w-4" />
-                      Selecionar Todos ({filteredContacts.length})
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={openSequentialDialog}>
-                      <ListOrdered className="mr-2 h-4 w-4" />
-                      Seleção Sequencial
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={clearSelection} disabled={selectedContacts.size === 0}>
-                      <X className="mr-2 h-4 w-4" />
-                      Limpar Seleção
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle>
+                    {filteredContacts.length} Contatos
+                    {filteredContacts.length > itemsPerPage && (
+                      <span className="text-sm text-muted-foreground ml-2">
+                        (Página {currentPage} de {Math.ceil(filteredContacts.length / itemsPerPage)})
+                      </span>
+                    )}
+                  </CardTitle>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <CheckSquare className="h-4 w-4" />
+                        Selecionar
+                        {selectedContacts.size > 0 && (
+                          <Badge variant="secondary" className="ml-1">
+                            {selectedContacts.size}
+                          </Badge>
+                        )}
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-popover">
+                      <DropdownMenuItem onClick={selectAll}>
+                        <CheckSquare className="mr-2 h-4 w-4" />
+                        Selecionar Todos ({filteredContacts.length})
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={openSequentialDialog}>
+                        <ListOrdered className="mr-2 h-4 w-4" />
+                        Seleção Sequencial
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={clearSelection} disabled={selectedContacts.size === 0}>
+                        <X className="mr-2 h-4 w-4" />
+                        Limpar Seleção
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                
+                {/* Paginação no topo */}
+                {filteredContacts.length > itemsPerPage && (() => {
+                  const totalPages = Math.ceil(filteredContacts.length / itemsPerPage);
+                  const visibleCount = 7;
+                  const halfVisible = Math.floor(visibleCount / 2);
+                  
+                  let startPage = Math.max(1, currentPage - halfVisible);
+                  let endPage = Math.min(totalPages, startPage + visibleCount - 1);
+                  
+                  if (endPage - startPage < visibleCount - 1) {
+                    startPage = Math.max(1, endPage - visibleCount + 1);
+                  }
+                  
+                  const visiblePages = [];
+                  for (let i = startPage; i <= endPage; i++) {
+                    visiblePages.push(i);
+                  }
+                  
+                  return (
+                    <div className="flex items-center justify-center gap-1 pt-2 border-t">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                        title="Primeira página"
+                      >
+                        <ChevronsLeft className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setCurrentPage(p => p - 1)}
+                        disabled={currentPage === 1}
+                        title="Página anterior"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                      
+                      {visiblePages.map((page) => (
+                        <Button
+                          key={page}
+                          variant={page === currentPage ? "default" : "outline"}
+                          size="icon"
+                          className="h-7 w-7 text-xs"
+                          onClick={() => setCurrentPage(page)}
+                        >
+                          {page}
+                        </Button>
+                      ))}
+                      
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        disabled={currentPage >= totalPages}
+                        title="Próxima página"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage >= totalPages}
+                        title="Última página"
+                      >
+                        <ChevronsRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  );
+                })()}
               </div>
             </CardHeader>
             <CardContent>
