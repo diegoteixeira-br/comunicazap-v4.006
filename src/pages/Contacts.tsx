@@ -855,10 +855,6 @@ const Contacts = () => {
                       <CheckSquare className="mr-2 h-4 w-4" />
                       Selecionar Todos ({filteredContacts.length})
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={selectCurrentPage}>
-                      <CheckSquare className="mr-2 h-4 w-4" />
-                      Selecionar Página ({Math.min(itemsPerPage, filteredContacts.length - (currentPage - 1) * itemsPerPage)})
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={openSequentialDialog}>
                       <ListOrdered className="mr-2 h-4 w-4" />
                       Seleção Sequencial
