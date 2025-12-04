@@ -99,6 +99,11 @@ const Index = () => {
       description: "Acompanhe todos os envios realizados com relatórios detalhados",
     },
     {
+      icon: Bot,
+      title: "Proteção Anti-Bloqueio",
+      description: "Sistema inteligente que cria variações únicas de cada mensagem automaticamente com IA",
+    },
+    {
       icon: Users,
       title: "Gestão Avançada",
       description: "Importe, organize, edite e exporte contatos com tags e campos personalizados",
@@ -107,11 +112,6 @@ const Index = () => {
       icon: CheckCircle,
       title: "Status em Tempo Real",
       description: "Veja o status de cada mensagem durante o processo de envio",
-    },
-    {
-      icon: Bot,
-      title: "Proteção Anti-Bloqueio",
-      description: "Sistema inteligente que cria variações únicas de cada mensagem automaticamente com IA",
     },
   ];
   return (
