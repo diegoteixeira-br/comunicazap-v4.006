@@ -6,7 +6,125 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_PER_BATCH = 10; // IA gera bem até 10 variações por vez
+const MAX_PER_BATCH = 10;
+
+// Calcular similaridade entre duas strings (0-1)
+function calculateSimilarity(str1: string, str2: string): number {
+  const s1 = str1.toLowerCase().replace(/\s+/g, ' ').trim();
+  const s2 = str2.toLowerCase().replace(/\s+/g, ' ').trim();
+  
+  if (s1 === s2) return 1;
+  if (s1.length === 0 || s2.length === 0) return 0;
+  
+  // Calcular palavras em comum
+  const words1 = new Set(s1.split(/\s+/));
+  const words2 = new Set(s2.split(/\s+/));
+  
+  let commonWords = 0;
+  words1.forEach(word => {
+    if (words2.has(word)) commonWords++;
+  });
+  
+  const totalWords = Math.max(words1.size, words2.size);
+  return commonWords / totalWords;
+}
+
+// Validar se uma variação é aceitável
+function isValidVariation(
+  variation: string, 
+  original: string, 
+  existingVariations: string[]
+): { valid: boolean; reason?: string } {
+  // Rejeitar se muito curta
+  if (variation.length < 50) {
+    return { valid: false, reason: 'muito_curta' };
+  }
+  
+  // Rejeitar se não tem placeholder {nome}
+  if (!variation.includes('{nome}')) {
+    return { valid: false, reason: 'sem_placeholder' };
+  }
+  
+  // Rejeitar se contém labels indesejados
+  if (/\(varia[çc][aã]o\s*\d*\)/i.test(variation) || 
+      /varia[çc][aã]o\s*\d+/i.test(variation) ||
+      /\(vers[aã]o\s*\d*\)/i.test(variation)) {
+    return { valid: false, reason: 'tem_label' };
+  }
+  
+  // Rejeitar se muito similar à original (>70%)
+  const similarityToOriginal = calculateSimilarity(variation, original);
+  if (similarityToOriginal > 0.7) {
+    return { valid: false, reason: 'muito_similar_original' };
+  }
+  
+  // Rejeitar se é duplicata de uma existente
+  for (const existing of existingVariations) {
+    const similarity = calculateSimilarity(variation, existing);
+    if (similarity > 0.8) {
+      return { valid: false, reason: 'duplicata' };
+    }
+  }
+  
+  return { valid: true };
+}
+
+// Gerar variação de emergência com IA usando técnica específica
+async function generateEmergencyVariation(
+  original: string,
+  technique: string,
+  apiKey: string
+): Promise<string | null> {
+  const techniques: Record<string, string> = {
+    'formal': 'Reescreva de forma MAIS FORMAL e profissional, mantendo o sentido.',
+    'casual': 'Reescreva de forma MAIS CASUAL e amigável, como conversa entre amigos.',
+    'emotiva': 'Reescreva com TOM MAIS EMOTIVO e caloroso, transmitindo carinho.',
+    'curta': 'Reescreva de forma MAIS CURTA e direta, sem perder o sentido principal.',
+    'expandida': 'Reescreva EXPANDINDO com mais detalhes e explicações.',
+    'motivacional': 'Reescreva com TOM MOTIVACIONAL e inspirador.',
+    'poetica': 'Reescreva com linguagem MAIS POÉTICA e elegante.',
+    'objetiva': 'Reescreva de forma OBJETIVA e clara, focando nos pontos principais.',
+  };
+
+  const instruction = techniques[technique] || techniques['casual'];
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { 
+            role: 'system', 
+            content: `Você é um copywriter. ${instruction}
+
+REGRAS ABSOLUTAS:
+- NUNCA copie a mensagem original
+- NUNCA adicione "(variação X)" ou labels similares
+- MANTENHA o placeholder {nome}
+- Use palavras DIFERENTES da original
+- Retorne APENAS a mensagem reescrita, sem explicações` 
+          },
+          { role: 'user', content: original }
+        ],
+        temperature: 1.0,
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content?.trim();
+    
+    return text || null;
+  } catch {
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -33,28 +151,16 @@ serve(async (req) => {
       throw new Error('Original message is required');
     }
 
-    // Detectar se a mensagem original tem emojis
     const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
     const hasEmojis = emojiRegex.test(originalMessage);
     const emojiCount = (originalMessage.match(emojiRegex) || []).length;
 
-    // Sem limite máximo - calcular com base no número de contatos
     const variationCount = Math.max(1, count);
-    const toGenerate = variationCount - 1; // Menos a original
-
-    // Calcular distribuição 70/30 de emojis
-    const withEmojiCount = hasEmojis 
-      ? Math.round(toGenerate * 0.7)  // 70% com emojis se original tem
-      : Math.round(toGenerate * 0.3); // 30% com emojis se original não tem
-    const withoutEmojiCount = toGenerate - withEmojiCount;
+    const toGenerate = variationCount - 1;
 
     if (toGenerate === 0) {
-      // Se só precisa de 1, retornar apenas a original
       return new Response(
-        JSON.stringify({ 
-          success: true,
-          variations: [originalMessage]
-        }),
+        JSON.stringify({ success: true, variations: [originalMessage] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -66,7 +172,6 @@ serve(async (req) => {
 
     console.log(`Generating ${toGenerate} variations for user ${user.id}`);
 
-    // Dividir em lotes para evitar sobrecarregar a IA
     const totalBatches = Math.ceil(toGenerate / MAX_PER_BATCH);
     const allVariations: string[] = [];
 
@@ -78,118 +183,60 @@ serve(async (req) => {
 
       console.log(`Generating batch ${batch + 1}/${totalBatches} with ${batchSize} variations`);
 
-      // Prompt melhorado: mensagens COMPLETAS e CRIATIVAS com separador
-      const systemPrompt = `Você é um copywriter CRIATIVO para WhatsApp. Crie ${batchSize} mensagens COMPLETAS e CRIATIVAS.
+      const systemPrompt = `Você é um COPYWRITER ESPECIALISTA em criar VARIAÇÕES ÚNICAS de mensagens para WhatsApp.
 
-⚠️ REGRA CRÍTICA DE FORMATO:
-- Cada variação DEVE ser uma MENSAGEM COMPLETA
-- Separe CADA variação com a linha: ---VARIACAO---
-- NÃO numere as variações
-- MANTENHA quebras de linha dentro de cada mensagem
+🚫 REGRAS ABSOLUTAS - NUNCA FAZER:
+- NUNCA copiar a mensagem original palavra por palavra
+- NUNCA adicionar "(variação 1)", "(variação 2)", "versão X" ou qualquer label
+- NUNCA retornar texto idêntico ou muito parecido com o original
+- NUNCA usar as mesmas frases na mesma ordem
 
-📋 ESTRUTURA OBRIGATÓRIA DE CADA MENSAGEM (analise a original):
-1. SAUDAÇÃO inicial (com {nome})
-2. CORPO da mensagem (1-3 parágrafos)
-3. DESPEDIDA/VOTOS
-4. ASSINATURA (se tiver na original)
+✅ O QUE VOCÊ DEVE FAZER:
+- Criar mensagens com o MESMO SENTIDO mas ESTRUTURA e PALAVRAS DIFERENTES
+- REORGANIZAR a ordem das informações
+- Usar SINÔNIMOS criativos para cada palavra importante
+- VARIAR o comprimento das frases
+- MANTER o placeholder {nome} obrigatoriamente
 
-🎨 CRIATIVIDADE - Seja ORIGINAL e VARIADO:
-- Use diferentes formas de expressar a mesma ideia
-- Varie metáforas (novo ciclo, jornada, recomeço, etc.)
-- Alterne entre abordagens (emocional, motivacional, calorosa, inspiradora)
-- Mude a ordem dos elementos (agradecimento antes/depois)
-- Use sinônimos criativos (parceria, confiança, caminhada juntos)
-- Varie o comprimento das frases e parágrafos
+📝 TÉCNICAS OBRIGATÓRIAS DE VARIAÇÃO:
+1. SINONÍMIA: Trocar palavras por equivalentes
+   - "agradecer" → "expressar gratidão", "ser grato por"
+   - "confiança" → "parceria", "caminhada juntos"
+   - "desejamos" → "esperamos que", "torcemos para"
+   
+2. REORGANIZAÇÃO: Mudar a estrutura
+   - Começar pelo agradecimento OU pela saudação
+   - Colocar os votos no início OU no final
+   - Usar parágrafos curtos OU um bloco contínuo
+   
+3. EXPANSÃO/CONTRAÇÃO:
+   - Adicionar detalhes em mensagens curtas
+   - Resumir mensagens longas mantendo essência
+   
+4. TOM: Alternar entre estilos
+   - Formal → Casual → Emotivo → Motivacional
 
 ${hasEmojis ? `
-🎭 REGRAS DE EMOJIS (mensagem original TEM ${emojiCount} emoji(s)):
-- Crie aproximadamente ${Math.round(batchSize * 0.7)} variações COM emojis:
-  • Use emojis DIFERENTES mas na mesma pegada/temática da original
-  • VARIE as posições (início, meio, fim da frase)
-  • Pode usar emojis similares ou complementares
-  • Mantenha a energia e tom visual da mensagem
-  • Não repita os mesmos emojis da original sempre
-  
-- Crie aproximadamente ${Math.round(batchSize * 0.3)} variações SEM emojis:
-  • Remova COMPLETAMENTE os emojis
-  • Compense com palavras mais expressivas
-  • Mantenha o mesmo entusiasmo só com texto
+🎭 EMOJIS (original tem ${emojiCount}):
+- ~70% das variações: COM emojis DIFERENTES do original
+- ~30% das variações: SEM emojis (compensar com palavras expressivas)
 ` : `
-🎭 REGRAS DE EMOJIS (mensagem original NÃO tem emojis):
-- Crie aproximadamente ${Math.round(batchSize * 0.7)} variações SEM emojis:
-  • Mantenha o estilo clean e profissional
-  • Use apenas texto, SEM emojis
-  • Foco na clareza e objetividade
-  
-- Crie aproximadamente ${Math.round(batchSize * 0.3)} variações COM emojis sutis:
-  • Adicione emojis apropriados ao contexto
-  • Posicione em locais estratégicos (início ou fim)
-  • Use emojis que combinem com o tom da mensagem
-  • Não exagere - mantenha elegância
+🎭 EMOJIS (original não tem):
+- ~70% das variações: SEM emojis (manter estilo)
+- ~30% das variações: COM emojis sutis e apropriados
 `}
 
 ${allVariations.length > 0 ? `
-⚠️ VARIAÇÕES JÁ CRIADAS (NÃO REPETIR):
-${allVariations.map((v, i) => `${i + 1}. ${v.substring(0, 100)}...`).join('\n')}
-
-IMPORTANTE: As novas variações devem ser COMPLETAMENTE DIFERENTES das ${allVariations.length} acima!
+⚠️ VARIAÇÕES JÁ CRIADAS (NÃO REPETIR ESTILO):
+${allVariations.slice(-5).map((v, i) => `${i + 1}. ${v.substring(0, 80)}...`).join('\n')}
 ` : ''}
 
-✨ EXEMPLO DE FORMATO CORRETO (Mensagem de Ano Novo):
+📋 FORMATO DE SAÍDA:
+- Separe CADA variação com: ---VARIACAO---
+- NÃO numere as variações
+- Cada variação deve ser uma MENSAGEM COMPLETA
 
-ORIGINAL:
-✨ Olá, {nome}! ✨
-Chegamos ao fim de mais um ano e queremos agradecer pela sua confiança!
-Desejamos um final de ano repleto de momentos especiais.
-Boas Festas e um próspero Ano Novo! 🎊
-Com carinho, Equipe
-
-SAÍDA ESPERADA:
-🎆 Oi, {nome}! 🎆
-
-Um novo ano está chegando e com ele milhões de possibilidades!
-
-Obrigado por fazer parte da nossa história em mais esse ciclo. Sua confiança nos impulsiona a ser melhores a cada dia.
-
-Que 2025 seja o ano das suas maiores conquistas! 🚀
-
-Abraços calorosos,
-Equipe
----VARIACAO---
-Querido(a) {nome},
-
-O ano está terminando e nosso coração transborda de gratidão por ter você conosco.
-
-Cada momento de parceria foi especial e nos ensinou algo novo. Que venha um novo ano repleto de realizações e alegrias para você e toda sua família.
-
-Feliz 2025!
-
-Com muito carinho,
-Equipe
----VARIACAO---
-🌟 {nome}, tudo bem? 🌟
-
-Fim de ano é tempo de olhar para trás e agradecer... E você faz parte das coisas boas que aconteceram!
-
-Muito obrigado pela confiança e parceria durante todo esse ano.
-
-Desejamos que o novo ano traga tudo de mais lindo para você! ✨
-
-Um grande abraço,
-Equipe
----VARIACAO---
-Oi {nome},
-
-Mais um ciclo se encerra e não poderíamos deixar passar sem expressar nossa gratidão.
-
-Ter você conosco faz toda a diferença! Que o próximo ano seja ainda mais incrível, cheio de conquistas e momentos memoráveis.
-
-Felizes Festas!
-
-Atenciosamente,
-Equipe
-
-Retorne APENAS as ${batchSize} novas variações separadas por ---VARIACAO---`;
+Crie ${batchSize} variações COMPLETAMENTE DIFERENTES da original e entre si.`;
 
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
@@ -201,9 +248,9 @@ Retorne APENAS as ${batchSize} novas variações separadas por ---VARIACAO---`;
           model: 'google/gemini-2.5-flash',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Mensagem original:\n\n${originalMessage}\n\nCrie ${batchSize} variações ÚNICAS e DIFERENTES.` }
+            { role: 'user', content: `Mensagem original:\n\n${originalMessage}\n\nCrie ${batchSize} variações ÚNICAS usando técnicas de sinonímia, reorganização e variação de tom.` }
           ],
-          temperature: 0.9, // Mais criatividade para evitar repetições
+          temperature: 0.95,
         }),
       });
 
@@ -226,41 +273,70 @@ Retorne APENAS as ${batchSize} novas variações separadas por ---VARIACAO---`;
         throw new Error('No content generated');
       }
 
-      // Processar as variações geradas usando o separador
-      const batchVariations = generatedText
+      // Processar e validar variações
+      const rawVariations = generatedText
         .split('---VARIACAO---')
-        .map((variation: string) => variation.trim())
-        .filter((variation: string) => {
-          // Validar que é uma mensagem completa
-          const isLongEnough = variation.length > 50;
-          const hasPlaceholder = variation.includes('{nome}');
-          return isLongEnough && hasPlaceholder;
-        })
-        .slice(0, batchSize);
+        .map((v: string) => v.trim())
+        .filter((v: string) => v.length > 0);
 
-      // Se não conseguiu gerar todas, criar variações sutis (invisíveis para humanos)
-      const subtleModifiers = [
-        (msg: string) => msg.replace(/!$/, '.'),
-        (msg: string) => msg.replace(/\.$/, '!'),
-        (msg: string) => msg.trim() + ' ',
-        (msg: string) => ' ' + msg.trim(),
-        (msg: string) => msg.replace(/\n\n/g, '\n \n'),
-        (msg: string) => msg.replace(/😊/g, '🙂'),
-        (msg: string) => msg.replace(/🎉/g, '🎊'),
-        (msg: string) => msg.replace(/✨/g, '⭐'),
-        (msg: string) => msg.replace(/❤️/g, '💖'),
-        (msg: string) => msg.replace(/👍/g, '👌'),
-      ];
+      const batchVariations: string[] = [];
       
+      for (const variation of rawVariations) {
+        if (batchVariations.length >= batchSize) break;
+        
+        const validation = isValidVariation(variation, originalMessage, [...allVariations, ...batchVariations]);
+        
+        if (validation.valid) {
+          batchVariations.push(variation);
+          console.log(`Variation accepted (${batchVariations.length}/${batchSize})`);
+        } else {
+          console.log(`Variation rejected: ${validation.reason}`);
+        }
+      }
+
+      // Fallback inteligente: gerar variações faltantes com técnicas específicas
+      const techniques = ['formal', 'casual', 'emotiva', 'curta', 'expandida', 'motivacional', 'poetica', 'objetiva'];
+      let techniqueIndex = 0;
+      let retryCount = 0;
+      const maxRetries = batchSize * 2;
+
+      while (batchVariations.length < batchSize && retryCount < maxRetries) {
+        console.log(`Fallback: generating emergency variation (${batchVariations.length}/${batchSize})`);
+        
+        const technique = techniques[techniqueIndex % techniques.length];
+        techniqueIndex++;
+        retryCount++;
+        
+        const emergencyVariation = await generateEmergencyVariation(
+          originalMessage,
+          technique,
+          LOVABLE_API_KEY
+        );
+
+        if (emergencyVariation) {
+          const validation = isValidVariation(
+            emergencyVariation, 
+            originalMessage, 
+            [...allVariations, ...batchVariations]
+          );
+          
+          if (validation.valid) {
+            batchVariations.push(emergencyVariation);
+            console.log(`Emergency variation accepted (technique: ${technique})`);
+          } else {
+            console.log(`Emergency variation rejected: ${validation.reason}`);
+          }
+        }
+      }
+
+      // Se ainda faltam, usar a original (último recurso)
       while (batchVariations.length < batchSize) {
-        const modifierIndex = (allVariations.length + batchVariations.length) % subtleModifiers.length;
-        const modifier = subtleModifiers[modifierIndex];
-        batchVariations.push(modifier(originalMessage));
+        console.log('Warning: Using original as last resort fallback');
+        batchVariations.push(originalMessage);
       }
 
       allVariations.push(...batchVariations);
-      
-      console.log(`Batch ${batch + 1} complete: ${batchVariations.length} variations generated`);
+      console.log(`Batch ${batch + 1} complete: ${batchVariations.length} variations`);
     }
 
     console.log(`Total generated: ${allVariations.length} variations (requested: ${toGenerate})`);
@@ -268,7 +344,7 @@ Retorne APENAS as ${batchSize} novas variações separadas por ---VARIACAO---`;
     return new Response(
       JSON.stringify({ 
         success: true,
-        variations: [originalMessage, ...allVariations] // Original + variações
+        variations: [originalMessage, ...allVariations]
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -276,10 +352,7 @@ Retorne APENAS as ${batchSize} novas variações separadas por ---VARIACAO---`;
   } catch (error: any) {
     console.error('Error in generate-variations:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
+      JSON.stringify({ success: false, error: error.message }),
       { 
         status: error.message === 'Unauthorized' ? 401 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
