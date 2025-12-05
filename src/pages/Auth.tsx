@@ -158,7 +158,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100 text-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-between mb-4">
           <Button
@@ -170,7 +170,7 @@ const Auth = () => {
           </Button>
           <ThemeToggle />
         </div>
-        <div className="bg-card rounded-lg shadow-lg p-8">
+        <div className="bg-white rounded-lg shadow-lg p-8">
           {isResetMode ? (
             <>
               <h1 className="text-3xl font-bold text-center mb-2">

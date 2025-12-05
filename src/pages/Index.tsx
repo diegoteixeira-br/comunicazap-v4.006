@@ -114,9 +114,9 @@ const Index = () => {
     },
   ];
   return (
-    <div className="light min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-white via-white to-purple-50 text-slate-900 overflow-x-hidden">
       {/* Header/Navbar */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex h-16 items-center justify-between">
             {/* Logo e Nome */}
