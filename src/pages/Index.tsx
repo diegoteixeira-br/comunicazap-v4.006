@@ -23,7 +23,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import logo from "@/assets/comunicazap-logo.png";
 import { Footer } from "@/components/Footer";
-import { ThemeToggle } from "@/components/ThemeToggle";
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -115,7 +114,7 @@ const Index = () => {
     },
   ];
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 overflow-x-hidden">
+    <div className="light min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 overflow-x-hidden">
       {/* Header/Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
@@ -130,7 +129,6 @@ const Index = () => {
 
             {/* Botões de ação */}
             <div className="flex items-center gap-2">
-              <ThemeToggle />
               <Button
                 onClick={() => navigate("/auth")}
                 variant="default"
