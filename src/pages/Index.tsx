@@ -99,11 +99,6 @@ const Index = () => {
       description: "Acompanhe todos os envios realizados com relatórios detalhados",
     },
     {
-      icon: Bot,
-      title: "Proteção Anti-Bloqueio",
-      description: "Sistema inteligente que cria variações únicas de cada mensagem automaticamente com IA",
-    },
-    {
       icon: Users,
       title: "Gestão Avançada",
       description: "Importe, organize, edite e exporte contatos com tags e campos personalizados",
@@ -112,6 +107,11 @@ const Index = () => {
       icon: CheckCircle,
       title: "Status em Tempo Real",
       description: "Veja o status de cada mensagem durante o processo de envio",
+    },
+    {
+      icon: Bot,
+      title: "Proteção Anti-Bloqueio",
+      description: "Sistema inteligente que cria variações únicas de cada mensagem automaticamente com IA",
     },
   ];
   return (
@@ -206,7 +206,7 @@ const Index = () => {
             Uma solução completa para suas necessidades de comunicação em massa via WhatsApp
           </p>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {benefits.map((benefit, index) => (
+            {benefits.slice(0, 6).map((benefit, index) => (
               <Card key={index} className="border-border/50 hover:border-primary/50 transition-all duration-300">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
@@ -221,6 +221,28 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+          {/* Last benefit centered */}
+          <div className="flex justify-center mt-6">
+            {(() => {
+              const lastBenefit = benefits[6];
+              const LastIcon = lastBenefit.icon;
+              return (
+                <Card className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] border-border/50 hover:border-primary/50 transition-all duration-300">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <LastIcon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-1">{lastBenefit.title}</h3>
+                        <p className="text-sm text-muted-foreground">{lastBenefit.description}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         </div>
 
