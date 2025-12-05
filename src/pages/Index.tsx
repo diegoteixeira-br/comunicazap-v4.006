@@ -23,6 +23,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import logo from "@/assets/comunicazap-logo.png";
 import { Footer } from "@/components/Footer";
+import { ForceLightTheme } from "@/components/ForceLightTheme";
+
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -114,6 +116,7 @@ const Index = () => {
     },
   ];
   return (
+    <ForceLightTheme>
     <div className="min-h-screen bg-gradient-to-br from-white via-white to-purple-50 text-slate-900 overflow-x-hidden">
       {/* Header/Navbar */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
@@ -564,6 +567,7 @@ const Index = () => {
       </div>
       <Footer />
     </div>
+    </ForceLightTheme>
   );
 };
 export default Index;

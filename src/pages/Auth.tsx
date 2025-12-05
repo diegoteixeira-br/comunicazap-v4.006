@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { ForceLightTheme } from '@/components/ForceLightTheme';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -157,6 +158,7 @@ const Auth = () => {
   };
 
   return (
+    <ForceLightTheme>
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 to-indigo-100 text-slate-900 p-4">
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-4">
@@ -434,6 +436,7 @@ const Auth = () => {
         </div>
       </div>
     </div>
+    </ForceLightTheme>
   );
 };
 
