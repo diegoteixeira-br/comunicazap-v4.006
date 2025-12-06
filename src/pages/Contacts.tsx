@@ -62,7 +62,8 @@ import {
 } from "@/components/ui/select";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
-import { normalizePhone } from "@/lib/phone";
+import { normalizePhone, normalizePhoneForComparison } from "@/lib/phone";
+import { MergeDuplicatesDialog } from "@/components/MergeDuplicatesDialog";
 
 interface Contact {
   id: string;
@@ -350,12 +351,13 @@ const Contacts = () => {
     }
   };
 
-  // Função para encontrar duplicatas
+  // Função para encontrar duplicatas (com normalização brasileira melhorada)
   const findDuplicates = () => {
     const phoneMap = new Map<string, Contact[]>();
     
     contacts.forEach(contact => {
-      const normalized = normalizePhone(contact.phone_number);
+      // Usar normalização que considera números BR com/sem 9° dígito
+      const normalized = normalizePhoneForComparison(contact.phone_number);
       if (!phoneMap.has(normalized)) {
         phoneMap.set(normalized, []);
       }
@@ -380,8 +382,12 @@ const Contacts = () => {
     setShowMergeDialog(true);
   };
 
-  // Executar merge de duplicatas
-  const handleMergeDuplicates = async () => {
+  // Executar merge de duplicatas com seleção manual
+  const handleMergeDuplicates = async (
+    selections: Map<string, string>,
+    mergeTags: boolean,
+    mergeBirthday: boolean
+  ) => {
     if (duplicates.size === 0) return;
     
     setIsMerging(true);
@@ -390,29 +396,40 @@ const Contacts = () => {
       let deleted = 0;
 
       for (const [normalizedPhone, contactList] of duplicates.entries()) {
-        // Ordenar por data de criação (mais antigo primeiro) ou por quem tem mais tags
-        const sorted = [...contactList].sort((a, b) => {
-          // Priorizar quem tem mais tags
-          const tagsA = a.tags?.length || 0;
-          const tagsB = b.tags?.length || 0;
-          if (tagsB !== tagsA) return tagsB - tagsA;
-          // Depois, mais antigo primeiro
-          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        });
+        const selectedId = selections.get(normalizedPhone);
+        if (!selectedId) continue;
 
-        const primary = sorted[0];
-        const duplicatesToDelete = sorted.slice(1);
+        const primary = contactList.find(c => c.id === selectedId);
+        if (!primary) continue;
 
-        // Mesclar todas as tags
-        const allTagsSet = new Set<string>();
-        contactList.forEach(c => c.tags?.forEach(t => allTagsSet.add(t)));
-        const mergedTags = Array.from(allTagsSet);
+        const duplicatesToDelete = contactList.filter(c => c.id !== selectedId);
 
-        // Atualizar contato principal com todas as tags
-        if (mergedTags.length > (primary.tags?.length || 0)) {
+        // Preparar dados para atualização
+        const updateData: { tags?: string[]; birthday?: string | null } = {};
+
+        // Mesclar todas as tags se opção ativada
+        if (mergeTags) {
+          const allTagsSet = new Set<string>();
+          contactList.forEach(c => c.tags?.forEach(t => allTagsSet.add(t)));
+          const mergedTagsArray = Array.from(allTagsSet);
+          if (mergedTagsArray.length > 0) {
+            updateData.tags = mergedTagsArray;
+          }
+        }
+
+        // Manter aniversário se opção ativada
+        if (mergeBirthday) {
+          const birthdayContact = contactList.find(c => c.birthday);
+          if (birthdayContact?.birthday) {
+            updateData.birthday = birthdayContact.birthday;
+          }
+        }
+
+        // Atualizar contato principal se houver dados para atualizar
+        if (Object.keys(updateData).length > 0) {
           await supabase
             .from('contacts')
-            .update({ tags: mergedTags })
+            .update(updateData)
             .eq('id', primary.id);
         }
 
@@ -1556,78 +1573,13 @@ const Contacts = () => {
         </Dialog>
 
         {/* Merge Duplicates Dialog */}
-        <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Merge className="h-5 w-5" />
-                Mesclar Contatos Duplicados
-              </DialogTitle>
-              <DialogDescription>
-                Encontramos {duplicates.size} grupo(s) de contatos com o mesmo número de telefone (normalizado)
-              </DialogDescription>
-            </DialogHeader>
-            
-            {duplicates.size === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-muted-foreground">
-                  ✅ Nenhuma duplicata encontrada!
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4 py-4">
-                <div className="p-3 bg-muted rounded-lg text-sm">
-                  <p>📊 O merge irá:</p>
-                  <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
-                    <li>Manter o contato com mais tags (ou o mais antigo)</li>
-                    <li>Combinar todas as tags em um único contato</li>
-                    <li>Remover os contatos duplicados</li>
-                  </ul>
-                </div>
-
-                <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                  {Array.from(duplicates.entries()).map(([phone, contactList]) => (
-                    <div key={phone} className="p-3 border rounded-lg">
-                      <p className="font-medium text-sm mb-2">
-                        Telefone: {phone} ({contactList.length} contatos)
-                      </p>
-                      <div className="space-y-1">
-                        {contactList.map((contact, idx) => (
-                          <div key={contact.id} className="text-xs flex items-center gap-2">
-                            <span className={idx === 0 ? 'font-medium text-primary' : 'text-muted-foreground'}>
-                              {idx === 0 ? '✓' : '✗'} {contact.name || 'Sem nome'}
-                            </span>
-                            {contact.tags && contact.tags.length > 0 && (
-                              <span className="text-muted-foreground">
-                                [{contact.tags.join(', ')}]
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowMergeDialog(false)}>
-                Cancelar
-              </Button>
-              {duplicates.size > 0 && (
-                <Button 
-                  onClick={handleMergeDuplicates}
-                  disabled={isMerging}
-                >
-                  {isMerging && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  <Merge className="mr-2 h-4 w-4" />
-                  Mesclar {duplicates.size} Grupo(s)
-                </Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <MergeDuplicatesDialog
+          open={showMergeDialog}
+          onOpenChange={setShowMergeDialog}
+          duplicates={duplicates}
+          onMerge={handleMergeDuplicates}
+          isMerging={isMerging}
+        />
 
         {/* Import Contacts Modal */}
         <ImportContactsModal
