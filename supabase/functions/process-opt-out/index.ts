@@ -6,6 +6,59 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Normaliza número de telefone BR para comparação
+const normalizePhoneForComparison = (phone: string): string => {
+  // Remove @s.whatsapp.net e caracteres não numéricos
+  let normalized = phone.replace(/@s\.whatsapp\.net/g, '').replace(/\D/g, '');
+  
+  // Adiciona código do Brasil se não tiver
+  if (!normalized.startsWith('55') && normalized.length <= 11) {
+    normalized = '55' + normalized;
+  }
+  
+  // Se tem 12 dígitos (antigo formato sem 9), adiciona o 9
+  if (normalized.startsWith('55') && normalized.length === 12) {
+    const ddd = normalized.slice(2, 4);
+    const number = normalized.slice(4);
+    if (number.length === 8) {
+      normalized = `55${ddd}9${number}`;
+    }
+  }
+  
+  return normalized;
+};
+
+// Gera variações possíveis de um número para busca
+const generatePhoneVariations = (normalizedPhone: string): string[] => {
+  const variations: string[] = [normalizedPhone];
+  
+  // Variação sem código do país (55)
+  if (normalizedPhone.startsWith('55')) {
+    variations.push(normalizedPhone.slice(2));
+  }
+  
+  // Variação sem o 9 adicional (formato antigo)
+  if (normalizedPhone.startsWith('55') && normalizedPhone.length === 13) {
+    const ddd = normalizedPhone.slice(2, 4);
+    const number = normalizedPhone.slice(5); // pula o 9
+    variations.push(`55${ddd}${number}`);
+    variations.push(`${ddd}${number}`);
+    variations.push(`${ddd}9${number}`);
+  }
+  
+  // Variação com o 9 adicional
+  if (normalizedPhone.startsWith('55') && normalizedPhone.length === 12) {
+    const ddd = normalizedPhone.slice(2, 4);
+    const number = normalizedPhone.slice(4);
+    variations.push(`55${ddd}9${number}`);
+    variations.push(`${ddd}9${number}`);
+    variations.push(`${ddd}${number}`);
+  }
+  
+  // Remove duplicatas
+  return [...new Set(variations)];
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -83,22 +136,39 @@ serve(async (req) => {
     if (isOptOut) {
       console.log('Opt-out detected, updating contact status...');
       
-      // Normalize phone number (remove @s.whatsapp.net suffix)
-      const normalizedPhone = sender.replace('@s.whatsapp.net', '');
+      // Normalizar o número do WhatsApp para comparação
+      const normalizedPhone = normalizePhoneForComparison(sender);
+      const phoneVariations = generatePhoneVariations(normalizedPhone);
       
-      // Update contact status to unsubscribed in contacts table
-      const { error: updateError } = await supabaseClient
-        .from('contacts')
-        .update({ 
-          status: 'unsubscribed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', instance.user_id)
-        .eq('phone_number', normalizedPhone);
-
-      // If contact doesn't exist, insert it as unsubscribed
-      if (updateError) {
-        console.log('Contact not found, creating as unsubscribed');
+      console.log('Phone normalization:', {
+        original: sender,
+        normalized: normalizedPhone,
+        variations: phoneVariations
+      });
+      
+      // Buscar e atualizar TODOS os contatos que correspondem a qualquer variação
+      let contactsUpdated = 0;
+      
+      for (const variation of phoneVariations) {
+        const { data: updatedContacts, error: updateError } = await supabaseClient
+          .from('contacts')
+          .update({ 
+            status: 'unsubscribed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', instance.user_id)
+          .eq('phone_number', variation)
+          .select('id');
+        
+        if (!updateError && updatedContacts && updatedContacts.length > 0) {
+          contactsUpdated += updatedContacts.length;
+          console.log(`Updated ${updatedContacts.length} contact(s) with phone: ${variation}`);
+        }
+      }
+      
+      // Se nenhum contato foi encontrado, criar um novo como unsubscribed
+      if (contactsUpdated === 0) {
+        console.log('No existing contact found, creating as unsubscribed');
         const { error: insertError } = await supabaseClient
           .from('contacts')
           .insert({
@@ -109,16 +179,17 @@ serve(async (req) => {
         
         if (insertError && insertError.code !== '23505') {
           console.error('Error creating unsubscribed contact:', insertError);
-          throw insertError;
+        } else {
+          contactsUpdated = 1;
         }
       }
       
-      // Also maintain backward compatibility with blocked_contacts
+      // Salvar na blocked_contacts com número normalizado (sem @s.whatsapp.net)
       const { error: blockError } = await supabaseClient
         .from('blocked_contacts')
         .insert({
           user_id: instance.user_id,
-          phone_number: sender,
+          phone_number: normalizedPhone, // Sempre salvar normalizado
           reason: `Opt-out via message: "${message}"`
         });
 
@@ -127,13 +198,15 @@ serve(async (req) => {
         console.error('Error blocking contact:', blockError);
       }
       
-      console.log('Contact unsubscribed successfully');
+      console.log(`Contact unsubscribed successfully. Total contacts updated: ${contactsUpdated}`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Contact blocked successfully',
-          blocked: true 
+          blocked: true,
+          contactsUpdated,
+          normalizedPhone
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
