@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle, RefreshCw, Eye, EyeOff, Lock, Users, Search } from "lucide-react";
+import { normalizePhoneForComparison } from "@/lib/phone";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ClientData } from "./Upload";
@@ -293,8 +294,8 @@ const Results = () => {
         if (error) throw error;
 
         if (data) {
-          // Normalizar números ao carregar (remover @s.whatsapp.net)
-          const blockedSet = new Set(data.map(contact => normalizePhone(contact.phone_number)));
+          // Normalizar números usando normalização para comparação (trata 9° dígito)
+          const blockedSet = new Set(data.map(contact => normalizePhoneForComparison(contact.phone_number)));
           setBlockedContacts(blockedSet);
         }
       } catch (error) {
@@ -1745,7 +1746,7 @@ const Results = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredClients.map((client, index) => {
-                        const isBlocked = !isWorkingWithGroups && blockedContacts.has(normalizePhone(client["Telefone do Cliente"]));
+                        const isBlocked = !isWorkingWithGroups && blockedContacts.has(normalizePhoneForComparison(client["Telefone do Cliente"]));
                         const isGroup = client["Telefone do Cliente"].includes('@g.us');
                         const groupInfo = isGroup ? groupsData.find((g: any) => g.id === client["Telefone do Cliente"]) : null;
                         
