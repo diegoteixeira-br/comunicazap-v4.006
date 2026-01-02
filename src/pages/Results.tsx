@@ -30,7 +30,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
@@ -1854,7 +1854,11 @@ const Results = () => {
                               mode="single"
                               selected={scheduledDate}
                               onSelect={setScheduledDate}
-                              disabled={(date) => date < new Date() || date > new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
+                              disabled={(date) => {
+                                const today = startOfDay(new Date());
+                                const maxDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                                return date < today || date > maxDate;
+                              }}
                               initialFocus
                               className="pointer-events-auto"
                             />
