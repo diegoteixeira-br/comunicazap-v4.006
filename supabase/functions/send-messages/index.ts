@@ -72,16 +72,17 @@ serve(async (req) => {
       "Telefone do Cliente": z.string().regex(/^\+?[1-9]\d{1,14}$|^.+@g\.us$/)
     });
 
-    const requestSchema = z.object({
-      clients: z.array(clientSchema).optional().nullable(),
-      targetTags: z.array(z.string()).optional().nullable(),
-      message: z.string().trim().max(1000).optional().nullable(),
-      messageVariations: z.array(z.string().trim().max(1000)).optional().nullable(),
-      image: z.string().optional().nullable(),
-      campaignName: z.string().trim().max(100).optional().nullable(),
-    });
+const requestSchema = z.object({
+  clients: z.array(clientSchema).optional().nullable(),
+  targetTags: z.array(z.string()).optional().nullable(),
+  message: z.string().trim().max(1000).optional().nullable(),
+  messageVariations: z.array(z.string().trim().max(1000)).optional().nullable(),
+  image: z.string().optional().nullable(),
+  campaignName: z.string().trim().max(100).optional().nullable(),
+  scheduledAt: z.string().datetime().optional().nullable(),
+});
 
-    const validatedData = requestSchema.parse(await req.json());
+const validatedData = requestSchema.parse(await req.json());
     const { 
       clients: providedClients, 
       targetTags, 
@@ -89,6 +90,7 @@ serve(async (req) => {
       messageVariations, 
       image, 
       campaignName,
+      scheduledAt,
     } = validatedData;
     
     let clients = providedClients || [];
@@ -172,6 +174,14 @@ serve(async (req) => {
     }
     console.log(`📊 Campanhas nas últimas 24h: ${dailyCampaignCount || 0}/20`);
 
+// Determinar status inicial da campanha
+    const isScheduled = scheduledAt && new Date(scheduledAt) > new Date();
+    const initialStatus = isScheduled ? 'scheduled' : 'in_progress';
+
+    if (isScheduled) {
+      console.log(`📅 Campanha agendada para: ${scheduledAt}`);
+    }
+
     // Criar campanha
     const { data: campaign, error: campaignError } = await supabaseClient
       .from('message_campaigns')
@@ -182,13 +192,14 @@ serve(async (req) => {
         total_contacts: clients.length,
         message_variations: variations,
         target_tags: targetTags || [],
-        status: 'in_progress'
+        status: initialStatus,
+        scheduled_at: isScheduled ? scheduledAt : null
       })
       .select()
       .single();
 
     if (campaignError) throw campaignError;
-    console.log(`📋 Campanha criada: ${campaign.id}`);
+    console.log(`📋 Campanha criada: ${campaign.id} (status: ${initialStatus})`);
 
     const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK_URL');
     if (!n8nWebhookUrl) {
@@ -324,6 +335,26 @@ serve(async (req) => {
     }
 
     console.log(`📋 ${contactsToSend.length} contatos prontos para envio (${clients.length - contactsToSend.length} bloqueados)`);
+
+// ============= SE AGENDADO, NÃO ENVIAR PARA N8N =============
+    if (isScheduled) {
+      console.log(`\n📅 Campanha agendada com sucesso!`);
+      console.log(`📊 ${contactsToSend.length} contatos preparados para envio em ${scheduledAt}`);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          campaignId: campaign.id,
+          totalContacts: clients.length,
+          contactsQueued: contactsToSend.length,
+          blockedContacts: clients.length - contactsToSend.length,
+          message: `Campanha agendada para ${new Date(scheduledAt).toLocaleString('pt-BR')}`,
+          status: 'scheduled',
+          scheduledAt: scheduledAt
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' } }
+      );
+    }
 
     // ============= ENVIAR TUDO PARA N8N (FIRE-AND-FORGET) =============
     const supabaseUrl = Deno.env.get('SUPABASE_URL');

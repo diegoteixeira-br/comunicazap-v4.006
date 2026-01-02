@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Loader2, Pause, Play, X, Eye } from 'lucide-react';
+import { ArrowLeft, Loader2, Pause, Play, X, Eye, Clock, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -113,7 +113,7 @@ const History = () => {
     setCampaignToCancel(null);
   };
 
-  const getStatusBadge = (status: string) => {
+const getStatusBadge = (status: string) => {
     const statusMap: Record<string, { variant: any; label: string; className?: string }> = {
       pending: { variant: 'secondary', label: 'Pendente' },
       in_progress: { variant: 'outline', label: 'Em Andamento', className: 'border-amber-500 text-amber-600 bg-amber-50 dark:bg-amber-950/30' },
@@ -121,6 +121,7 @@ const History = () => {
       cancelled: { variant: 'outline', label: 'Cancelada', className: 'border-orange-500 text-orange-600 bg-orange-50 dark:bg-orange-950/30' },
       completed: { variant: 'default', label: 'Concluída', className: 'bg-green-600 hover:bg-green-700' },
       failed: { variant: 'destructive', label: 'Falhou' },
+      scheduled: { variant: 'outline', label: 'Agendada', className: 'border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950/30' },
     };
 
     const config = statusMap[status] || statusMap.pending;
@@ -142,6 +143,15 @@ const History = () => {
         </Badge>
       );
     }
+
+    if (status === 'scheduled') {
+      return (
+        <Badge variant={config.variant} className={config.className}>
+          <Clock className="h-3 w-3 mr-1" />
+          {config.label}
+        </Badge>
+      );
+    }
     
     return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   };
@@ -159,7 +169,58 @@ const History = () => {
     setDetailsOpen(true);
   };
 
+const sendScheduledNow = async (campaignId: string) => {
+    const { error } = await supabase
+      .from('message_campaigns')
+      .update({ status: 'in_progress', scheduled_at: null })
+      .eq('id', campaignId)
+      .eq('user_id', user?.id);
+
+    if (error) {
+      toast.error('Erro ao enviar campanha');
+      console.error('Error sending scheduled campaign:', error);
+      return;
+    }
+
+    setCampaigns(prev => prev.map(c => 
+      c.id === campaignId ? { ...c, status: 'in_progress', scheduled_at: null } : c
+    ));
+
+    toast.success('Campanha enviada para processamento!');
+  };
+
   const renderActions = (campaign: any) => {
+    if (campaign.status === 'scheduled') {
+      return (
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+              e.stopPropagation();
+              sendScheduledNow(campaign.id);
+            }}
+            title="Enviar Agora"
+          >
+            <Send className="h-4 w-4 text-green-600" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCancelClick(campaign.id);
+            }}
+            title="Cancelar"
+          >
+            <X className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      );
+    }
+
     if (campaign.status === 'in_progress') {
       return (
         <div className="flex gap-1">
@@ -294,6 +355,7 @@ const History = () => {
                         <TableRow>
                           <TableHead className="text-xs sm:text-sm">Campanha</TableHead>
                           <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Data</TableHead>
+                          <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Agendado</TableHead>
                           <TableHead className="text-xs sm:text-sm">Total</TableHead>
                           <TableHead className="text-xs sm:text-sm">Enviados</TableHead>
                           <TableHead className="text-xs sm:text-sm hidden md:table-cell">Falhas</TableHead>
@@ -315,6 +377,18 @@ const History = () => {
                               {format(new Date(campaign.created_at), 'dd/MM/yy HH:mm', {
                                 locale: ptBR,
                               })}
+                            </TableCell>
+                            <TableCell className="text-xs sm:text-sm hidden lg:table-cell whitespace-nowrap">
+                              {campaign.scheduled_at ? (
+                                <span className="flex items-center gap-1 text-purple-600">
+                                  <Clock className="h-3 w-3" />
+                                  {format(new Date(campaign.scheduled_at), 'dd/MM/yy HH:mm', {
+                                    locale: ptBR,
+                                  })}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-xs sm:text-sm">{campaign.total_contacts}</TableCell>
                             <TableCell className="text-xs sm:text-sm">

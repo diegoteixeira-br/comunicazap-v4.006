@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle, RefreshCw, Eye, EyeOff, Lock, Users, Search } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, ArrowLeft, Info, ChevronDown, ChevronUp, Save, Trash2, Smartphone, ImagePlus, X, AlertTriangle, RefreshCw, Eye, EyeOff, Lock, Users, Search, Clock, CalendarIcon } from "lucide-react";
 import { normalizePhoneForComparison } from "@/lib/phone";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -28,6 +28,11 @@ import { supabase } from "@/integrations/supabase/sessionClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 const Results = () => {
   const navigate = useNavigate();
@@ -66,6 +71,8 @@ const Results = () => {
   const [generatingVariations, setGeneratingVariations] = useState(false);
   const [generationProgress, setGenerationProgress] = useState({ current: 0, total: 0 });
   const [contactSearch, setContactSearch] = useState("");
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
+  const [scheduledTime, setScheduledTime] = useState("12:00");
   
   // Detectar se estamos trabalhando com grupos
   const isWorkingWithGroups = clients.some(c => c["Telefone do Cliente"].includes('@g.us'));
@@ -691,6 +698,15 @@ const Results = () => {
         }
       }
 
+      // Preparar data de agendamento se definida
+      let scheduledAt: string | null = null;
+      if (scheduledDate) {
+        const [hours, minutes] = scheduledTime.split(':').map(Number);
+        const scheduleDateTime = new Date(scheduledDate);
+        scheduleDateTime.setHours(hours, minutes, 0, 0);
+        scheduledAt = scheduleDateTime.toISOString();
+      }
+
       // ============= ENVIO FIRE-AND-FORGET =============
       console.log(`🚀 Enviando ${clientsData.length} contatos para processamento...`);
       
@@ -701,6 +717,7 @@ const Results = () => {
           message: filledVariations.length > 0 ? filledVariations[0] : undefined,
           image: imageBase64 || undefined,
           campaignName,
+          scheduledAt,
         }
       });
 
@@ -721,13 +738,20 @@ const Results = () => {
         total: data.contactsQueued
       });
 
-      console.log(`✅ Campanha ${data.campaignId} iniciada!`);
+      console.log(`✅ Campanha ${data.campaignId} ${scheduledAt ? 'agendada' : 'iniciada'}!`);
       console.log(`📊 ${data.contactsQueued} contatos em fila, ${data.blockedContacts} bloqueados`);
 
       setIsSending(false);
-      toast.success("Campanha iniciada!", {
-        description: `${data.contactsQueued} mensagens sendo enviadas pelo n8n em background. Acompanhe no Histórico.`
-      });
+      
+      if (scheduledAt) {
+        toast.success("Campanha agendada!", {
+          description: `${data.contactsQueued} mensagens serão enviadas em ${format(new Date(scheduledAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+        });
+      } else {
+        toast.success("Campanha iniciada!", {
+          description: `${data.contactsQueued} mensagens sendo enviadas pelo n8n em background. Acompanhe no Histórico.`
+        });
+      }
 
       // Redirecionar para histórico após 2 segundos
       setTimeout(() => {
@@ -1803,6 +1827,68 @@ const Results = () => {
                   </Table>
                 </div>
 
+                {/* Scheduling Section */}
+                <Card className="bg-muted/30 border-dashed">
+                  <CardContent className="pt-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Agendar Envio (Opcional)</span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full sm:w-[200px] justify-start text-left font-normal",
+                                !scheduledDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {scheduledDate ? format(scheduledDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={scheduledDate}
+                              onSelect={setScheduledDate}
+                              disabled={(date) => date < new Date() || date > new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <Input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="w-full sm:w-[120px]"
+                          disabled={!scheduledDate}
+                        />
+                        {scheduledDate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setScheduledDate(undefined);
+                              setScheduledTime("12:00");
+                            }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {!scheduledDate && (
+                        <p className="text-xs text-muted-foreground">
+                          Se vazio, envia imediatamente
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Send Button at Bottom */}
                 <div className="mt-4 sm:mt-6">
                   <Tooltip>
@@ -1819,13 +1905,20 @@ const Results = () => {
                             handleSendAll();
                           }}
                           size="lg"
-                          className="w-full"
+                          className={cn("w-full", scheduledDate && "bg-purple-600 hover:bg-purple-700")}
                           disabled={!subscription.has_access || isSending || Object.values(sendingStatus).some(s => s === "sending")}
                         >
                           {!subscription.has_access ? (
                             <>
                               <Lock className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                               <span className="text-sm sm:text-base">Bloqueado - Assinatura Necessária</span>
+                            </>
+                          ) : scheduledDate ? (
+                            <>
+                              <Clock className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                              <span className="text-sm sm:text-base">
+                                Agendar para {format(scheduledDate, "dd/MM", { locale: ptBR })} às {scheduledTime}
+                              </span>
                             </>
                           ) : (
                             <>
