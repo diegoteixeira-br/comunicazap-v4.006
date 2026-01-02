@@ -148,6 +148,7 @@ export type Database = {
           id: string
           instance_id: string
           message_variations: string[] | null
+          scheduled_at: string | null
           sent_count: number | null
           status: string | null
           target_tags: string[] | null
@@ -162,6 +163,7 @@ export type Database = {
           id?: string
           instance_id: string
           message_variations?: string[] | null
+          scheduled_at?: string | null
           sent_count?: number | null
           status?: string | null
           target_tags?: string[] | null
@@ -176,6 +178,7 @@ export type Database = {
           id?: string
           instance_id?: string
           message_variations?: string[] | null
+          scheduled_at?: string | null
           sent_count?: number | null
           status?: string | null
           target_tags?: string[] | null
