@@ -621,6 +621,9 @@ const Dashboard = () => {
                         <Zap className="h-6 w-6 text-primary" />
                       </div>
                       Nova Campanha
+                      <Badge variant="secondary" className="bg-green-500 text-white text-xs">
+                        Novo: Agendamento
+                      </Badge>
                     </CardTitle>
                     {subscription.loading && subscription.verified === false ? (
                       <Badge variant="secondary" className="gap-1">

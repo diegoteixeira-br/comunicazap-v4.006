@@ -46,9 +46,10 @@ const PrivacyPolicy = () => {
               <li>Data e hora de acesso</li>
             </ul>
 
-            <h3>2.3 Informações Processadas Temporariamente</h3>
+            <h3>2.3 Informações Armazenadas Temporariamente</h3>
             <ul>
               <li>Conteúdo das mensagens para geração de variações (processado temporariamente, não armazenado)</li>
+              <li>Mensagens de campanhas agendadas são armazenadas em nossos servidores de forma segura até a data e hora programadas para o disparo, sendo processadas e removidas após o envio</li>
             </ul>
           </section>
 
@@ -98,6 +99,7 @@ const PrivacyPolicy = () => {
               <li>Controles de acesso restritos</li>
               <li>Monitoramento contínuo de segurança</li>
               <li>Backups regulares</li>
+              <li>Campanhas agendadas são armazenadas com criptografia até o momento do envio, sendo automaticamente processadas e removidas após a execução</li>
             </ul>
             <p>
               Seus dados são armazenados em servidores seguros e mantidos pelo tempo necessário para cumprir 

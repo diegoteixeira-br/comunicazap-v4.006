@@ -37,6 +37,7 @@ const TermsOfService = () => {
               <li>Calendário de aniversários e lembretes automáticos</li>
               <li>Histórico e relatórios de campanhas</li>
               <li>Geração automática de variações de mensagens com inteligência artificial para proteção anti-bloqueio</li>
+              <li>Agendamento de campanhas para envio em data e hora programadas</li>
             </ul>
           </section>
 
@@ -111,6 +112,8 @@ const TermsOfService = () => {
               <li>Uso inadequado de informações de aniversários pelos usuários</li>
               <li>Resultados das variações geradas por inteligência artificial</li>
               <li>Bloqueios que possam ocorrer mesmo com uso do sistema de variações</li>
+              <li>Falhas no envio de campanhas agendadas causadas por instabilidade no WhatsApp, APIs de terceiros fora do ar, ou problemas de conectividade no momento do disparo programado</li>
+              <li>Atrasos no processamento de campanhas agendadas devido a manutenções programadas ou eventos de força maior</li>
             </ul>
           </section>
 

@@ -77,6 +77,11 @@ const Index = () => {
       title: "Variações com IA",
       description: "IA que reescreve suas mensagens automaticamente, mantendo o sentido mas com palavras diferentes",
     },
+    {
+      icon: Clock,
+      title: "Agendamento de Envios",
+      description: "Programe suas campanhas para a data e hora ideal, com processamento automático no horário definido",
+    },
   ];
   const benefits = [
     {
@@ -402,6 +407,12 @@ const Index = () => {
                       <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                       <span className="text-sm">
                         <strong>IA para variações</strong> - mensagens únicas automaticamente
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <CheckCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">
+                        <strong>Agendamento de campanhas</strong> - envie na hora certa
                       </span>
                     </li>
                   </ul>
