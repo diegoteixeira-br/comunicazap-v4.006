@@ -49,7 +49,7 @@ const Dashboard = () => {
   const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [openingPortal, setOpeningPortal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null; document: string | null } | null>(null);
   const [showEmail, setShowEmail] = useState(() => {
     const saved = localStorage.getItem('showEmail');
     return saved !== null ? saved === 'true' : true;
@@ -97,7 +97,7 @@ const Dashboard = () => {
   const fetchUserProfile = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('full_name, avatar_url')
+      .select('full_name, avatar_url, document')
       .eq('id', user?.id)
       .maybeSingle();
     
@@ -503,6 +503,34 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-6 sm:space-y-8">
+            {/* Banner de Aviso - CPF/CNPJ não informado */}
+            {userProfile && !userProfile.document && (
+              <Card className="border-amber-500/50 bg-amber-500/10">
+                <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                        Complete seu cadastro
+                      </h3>
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
+                        Informe seu CPF ou CNPJ para continuar usando a plataforma.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowProfileSettings(true)}
+                    className="border-amber-500 text-amber-700 hover:bg-amber-500/20 dark:text-amber-200 whitespace-nowrap"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Informar documento
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Dashboard de Estatísticas para Assinantes */}
             {subscription.has_access && subscription.subscribed && (
               <div className="mb-6">
