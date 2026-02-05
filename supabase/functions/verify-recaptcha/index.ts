@@ -1,11 +1,9 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -31,10 +29,6 @@ serve(async (req) => {
     }
 
     // Call Google reCAPTCHA Enterprise API
-    const siteKey = '6LfBq2EsAAAAAN2PivNUXH6XVDgyDowRWYJZO8B7';
-    const projectId = 'comunicazap'; // Update with your Google Cloud project ID if different
-    
-    // Using the standard reCAPTCHA siteverify endpoint
     const verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
     
     const verifyResponse = await fetch(verifyUrl, {
