@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/hooks/use-toast';
 import { Camera, Trash2, Loader2, User as UserIcon, Lock, Save, FileText } from 'lucide-react';
-import { formatDocument, getDocumentTypeName } from '@/lib/document';
+import { formatDocument, getDocumentTypeName, validateDocument, cleanDocument } from '@/lib/document';
 
 interface ProfileSettingsModalProps {
   open: boolean;
@@ -27,6 +27,8 @@ export const ProfileSettingsModal = ({
   onProfileUpdate,
 }: ProfileSettingsModalProps) => {
   const [fullName, setFullName] = useState(profile?.full_name || '');
+  const [document, setDocument] = useState('');
+  const [documentError, setDocumentError] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -37,12 +39,33 @@ export const ProfileSettingsModal = ({
   const [removingAvatar, setRemovingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const hasExistingDocument = !!profile?.document;
+
   // Update fullName when profile changes
   useEffect(() => {
     if (profile?.full_name) {
       setFullName(profile.full_name);
     }
   }, [profile?.full_name]);
+
+  // Handle document input with mask
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatDocument(e.target.value);
+    setDocument(formatted);
+    setDocumentError('');
+  };
+
+  // Check if document already exists
+  const checkDocumentExists = async (doc: string): Promise<boolean> => {
+    const clean = cleanDocument(doc);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('document', clean)
+      .neq('id', user.id)
+      .maybeSingle();
+    return !!data;
+  };
 
   const getInitials = () => {
     if (profile?.full_name) {
@@ -185,11 +208,46 @@ export const ProfileSettingsModal = ({
       return;
     }
 
+    // Validate document if user doesn't have one yet and is providing one
+    if (!hasExistingDocument && document) {
+      const clean = cleanDocument(document);
+      if (clean.length > 0 && !validateDocument(clean)) {
+        setDocumentError('CPF ou CNPJ inválido');
+        return;
+      }
+
+      // Check if document already exists
+      if (clean.length === 11 || clean.length === 14) {
+        const exists = await checkDocumentExists(document);
+        if (exists) {
+          setDocumentError('Este CPF/CNPJ já está vinculado a outra conta');
+          toast({
+            title: 'Documento já cadastrado',
+            description: 'Este CPF/CNPJ já está vinculado a outra conta.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+    }
+
     setSavingProfile(true);
     try {
+      const updateData: { full_name: string; document?: string } = { 
+        full_name: fullName.trim() 
+      };
+      
+      // Only update document if user doesn't have one and is providing one
+      if (!hasExistingDocument && document) {
+        const clean = cleanDocument(document);
+        if (clean.length === 11 || clean.length === 14) {
+          updateData.document = clean;
+        }
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: fullName.trim() })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) throw error;
@@ -380,7 +438,7 @@ export const ProfileSettingsModal = ({
               </p>
             </div>
 
-            {formattedDocument && (
+            {hasExistingDocument ? (
               <div className="space-y-2">
                 <Label htmlFor="document" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -388,13 +446,35 @@ export const ProfileSettingsModal = ({
                 </Label>
                 <Input
                   id="document"
-                  value={formattedDocument}
+                  value={formattedDocument || ''}
                   disabled
                   className="bg-muted"
                 />
                 <p className="text-xs text-muted-foreground">
                   O documento não pode ser alterado por segurança
                 </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="document" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  CPF ou CNPJ
+                </Label>
+                <Input
+                  id="document"
+                  value={document}
+                  onChange={handleDocumentChange}
+                  placeholder="000.000.000-00"
+                  maxLength={18}
+                  className={documentError ? 'border-destructive' : ''}
+                />
+                {documentError ? (
+                  <p className="text-xs text-destructive">{documentError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Informe seu CPF ou CNPJ para continuar usando a plataforma
+                  </p>
+                )}
               </div>
             )}
 
