@@ -1013,9 +1013,23 @@ const Results = () => {
         
         setMessageVariations(newVariations);
         
-        toast.success(`${variationCount - 1} variações geradas com sucesso! ✨`, {
-          description: "Você pode editar as variações geradas se desejar"
-        });
+        // Verificar se houve falhas na geração
+        if (data.failedCount && data.failedCount > 0) {
+          const successCount = (variationCount - 1) - data.failedCount;
+          toast.warning(`⚠️ ${successCount} variações geradas, ${data.failedCount} falharam`, {
+            description: data.message || "Preencha manualmente os campos vazios antes de enviar.",
+            duration: 8000
+          });
+          
+          // Destacar campos que falharam (estão vazios)
+          if (data.failedSlots && data.failedSlots.length > 0) {
+            console.log('Slots que falharam:', data.failedSlots);
+          }
+        } else {
+          toast.success(`${variationCount - 1} variações geradas com sucesso! ✨`, {
+            description: "Você pode editar as variações geradas se desejar"
+          });
+        }
       } else {
         throw new Error(data?.error || 'Falha ao gerar variações');
       }

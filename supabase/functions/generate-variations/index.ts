@@ -7,6 +7,9 @@ const corsHeaders = {
 };
 
 const MAX_PER_BATCH = 10;
+const SIMILARITY_THRESHOLD = 0.55; // Reduzido de 0.7 para 0.55
+const SIMILARITY_THRESHOLD_DUPLICATES = 0.70; // Threshold para duplicatas entre variações
+const MAX_RETRIES = 2; // Máximo de tentativas por variação
 
 // Calcular similaridade entre duas strings (0-1)
 function calculateSimilarity(str1: string, str2: string): number {
@@ -29,11 +32,29 @@ function calculateSimilarity(str1: string, str2: string): number {
   return commonWords / totalWords;
 }
 
+// Detectar posição dos emojis na mensagem
+function detectEmojiPosition(text: string): 'inicio' | 'meio' | 'fim' | 'nenhum' | 'multiplas' {
+  const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
+  const matches = [...text.matchAll(emojiRegex)];
+  
+  if (matches.length === 0) return 'nenhum';
+  if (matches.length > 2) return 'multiplas';
+  
+  const textLength = text.length;
+  const firstEmojiPos = matches[0].index || 0;
+  const relativePos = firstEmojiPos / textLength;
+  
+  if (relativePos < 0.2) return 'inicio';
+  if (relativePos > 0.7) return 'fim';
+  return 'meio';
+}
+
 // Validar se uma variação é aceitável
 function isValidVariation(
   variation: string, 
   original: string, 
-  existingVariations: string[]
+  existingVariations: string[],
+  originalEmojiPosition: string
 ): { valid: boolean; reason?: string } {
   // Rejeitar se muito curta
   if (variation.length < 50) {
@@ -52,17 +73,29 @@ function isValidVariation(
     return { valid: false, reason: 'tem_label' };
   }
   
-  // Rejeitar se muito similar à original (>70%)
+  // Rejeitar se muito similar à original (threshold reduzido para 55%)
   const similarityToOriginal = calculateSimilarity(variation, original);
-  if (similarityToOriginal > 0.7) {
-    return { valid: false, reason: 'muito_similar_original' };
+  if (similarityToOriginal > SIMILARITY_THRESHOLD) {
+    return { valid: false, reason: `muito_similar_original (${(similarityToOriginal * 100).toFixed(0)}%)` };
   }
   
-  // Rejeitar se é duplicata de uma existente
+  // Verificar se a posição do emoji foi alterada (se original tinha emoji)
+  if (originalEmojiPosition !== 'nenhum') {
+    const variationEmojiPos = detectEmojiPosition(variation);
+    // Se a variação tem emoji na mesma posição que a original, penalizar (mas não rejeitar sempre)
+    if (variationEmojiPos === originalEmojiPosition && variationEmojiPos !== 'multiplas') {
+      // 50% de chance de rejeitar se emoji está na mesma posição
+      if (Math.random() > 0.5) {
+        return { valid: false, reason: 'emoji_mesma_posicao' };
+      }
+    }
+  }
+  
+  // Rejeitar se é duplicata de uma existente (threshold de 70%)
   for (const existing of existingVariations) {
     const similarity = calculateSimilarity(variation, existing);
-    if (similarity > 0.8) {
-      return { valid: false, reason: 'duplicata' };
+    if (similarity > SIMILARITY_THRESHOLD_DUPLICATES) {
+      return { valid: false, reason: `duplicata (${(similarity * 100).toFixed(0)}%)` };
     }
   }
   
@@ -73,7 +106,9 @@ function isValidVariation(
 async function generateEmergencyVariation(
   original: string,
   technique: string,
-  apiKey: string
+  apiKey: string,
+  originalEmojiPosition: string,
+  attemptNumber: number
 ): Promise<string | null> {
   const techniques: Record<string, string> = {
     'formal': 'Reescreva de forma MAIS FORMAL e profissional, mantendo o sentido.',
@@ -84,9 +119,28 @@ async function generateEmergencyVariation(
     'motivacional': 'Reescreva com TOM MOTIVACIONAL e inspirador.',
     'poetica': 'Reescreva com linguagem MAIS POÉTICA e elegante.',
     'objetiva': 'Reescreva de forma OBJETIVA e clara, focando nos pontos principais.',
+    'pergunta': 'Transforme afirmações em PERGUNTAS RETÓRICAS que engajem o leitor.',
+    'invertida': 'INVERTA a ordem das informações: coloque a CTA no início se estava no fim, ou vice-versa.',
+    'fragmentada': 'QUEBRE frases longas em duas ou três frases curtas e impactantes.',
   };
 
   const instruction = techniques[technique] || techniques['casual'];
+  
+  // Instruções específicas para posição de emoji
+  let emojiInstruction = '';
+  if (originalEmojiPosition === 'fim') {
+    emojiInstruction = 'Se usar emojis, coloque-os NO INÍCIO ou NO MEIO da mensagem, NUNCA no fim.';
+  } else if (originalEmojiPosition === 'inicio') {
+    emojiInstruction = 'Se usar emojis, coloque-os NO MEIO ou NO FIM da mensagem, NUNCA no início.';
+  } else if (originalEmojiPosition === 'meio') {
+    emojiInstruction = 'Se usar emojis, coloque-os NO INÍCIO ou NO FIM da mensagem, NUNCA no meio.';
+  }
+  
+  // 30% das tentativas devem ser sem emoji
+  const shouldBeWithoutEmoji = attemptNumber % 3 === 0;
+  if (shouldBeWithoutEmoji) {
+    emojiInstruction = 'NÃO use nenhum emoji nesta variação. Use apenas texto puro.';
+  }
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -106,12 +160,14 @@ REGRAS ABSOLUTAS:
 - NUNCA copie a mensagem original
 - NUNCA adicione "(variação X)" ou labels similares
 - MANTENHA o placeholder {nome}
-- Use palavras DIFERENTES da original
+- Use palavras COMPLETAMENTE DIFERENTES da original
+- Reestruture a ordem das frases
+- ${emojiInstruction}
 - Retorne APENAS a mensagem reescrita, sem explicações` 
           },
           { role: 'user', content: original }
         ],
-        temperature: 1.0,
+        temperature: 1.1,
       }),
     });
 
@@ -154,13 +210,14 @@ serve(async (req) => {
     const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu;
     const hasEmojis = emojiRegex.test(originalMessage);
     const emojiCount = (originalMessage.match(emojiRegex) || []).length;
+    const originalEmojiPosition = detectEmojiPosition(originalMessage);
 
     const variationCount = Math.max(1, count);
     const toGenerate = variationCount - 1;
 
     if (toGenerate === 0) {
       return new Response(
-        JSON.stringify({ success: true, variations: [originalMessage] }),
+        JSON.stringify({ success: true, variations: [originalMessage], failedCount: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -171,9 +228,11 @@ serve(async (req) => {
     }
 
     console.log(`Generating ${toGenerate} variations for user ${user.id}`);
+    console.log(`Original emoji position: ${originalEmojiPosition}, has emojis: ${hasEmojis}`);
 
     const totalBatches = Math.ceil(toGenerate / MAX_PER_BATCH);
     const allVariations: string[] = [];
+    const failedSlots: number[] = []; // Track which slots failed
 
     for (let batch = 0; batch < totalBatches; batch++) {
       const isLastBatch = batch === totalBatches - 1;
@@ -183,6 +242,39 @@ serve(async (req) => {
 
       console.log(`Generating batch ${batch + 1}/${totalBatches} with ${batchSize} variations`);
 
+      // Instruções de posição de emoji baseadas na original
+      let emojiPositionInstructions = '';
+      if (originalEmojiPosition === 'fim') {
+        emojiPositionInstructions = `
+⚠️ POSIÇÃO DE EMOJIS - REGRA CRÍTICA:
+A mensagem original tem emoji(s) NO FIM.
+- 40% das variações: emojis NO INÍCIO da mensagem
+- 30% das variações: emojis NO MEIO da mensagem  
+- 30% das variações: SEM EMOJIS (texto puro)
+- NUNCA coloque emoji no fim igual a original!`;
+      } else if (originalEmojiPosition === 'inicio') {
+        emojiPositionInstructions = `
+⚠️ POSIÇÃO DE EMOJIS - REGRA CRÍTICA:
+A mensagem original tem emoji(s) NO INÍCIO.
+- 40% das variações: emojis NO FIM da mensagem
+- 30% das variações: emojis NO MEIO da mensagem
+- 30% das variações: SEM EMOJIS (texto puro)
+- NUNCA coloque emoji no início igual a original!`;
+      } else if (originalEmojiPosition === 'meio') {
+        emojiPositionInstructions = `
+⚠️ POSIÇÃO DE EMOJIS - REGRA CRÍTICA:
+A mensagem original tem emoji(s) NO MEIO.
+- 40% das variações: emojis NO INÍCIO da mensagem
+- 30% das variações: emojis NO FIM da mensagem
+- 30% das variações: SEM EMOJIS (texto puro)
+- NUNCA coloque emoji no meio igual a original!`;
+      } else {
+        emojiPositionInstructions = `
+🎭 EMOJIS (original não tem):
+- 70% das variações: SEM emojis (manter estilo)
+- 30% das variações: COM emojis sutis e apropriados (variar posições)`;
+      }
+
       const systemPrompt = `Você é um COPYWRITER ESPECIALISTA em criar VARIAÇÕES ÚNICAS de mensagens para WhatsApp.
 
 🚫 REGRAS ABSOLUTAS - NUNCA FAZER:
@@ -190,134 +282,158 @@ serve(async (req) => {
 - NUNCA adicionar "(variação 1)", "(variação 2)", "versão X" ou qualquer label
 - NUNCA retornar texto idêntico ou muito parecido com o original
 - NUNCA usar as mesmas frases na mesma ordem
+- NUNCA manter a mesma estrutura de frases
 
 ✅ O QUE VOCÊ DEVE FAZER:
-- Criar mensagens com o MESMO SENTIDO mas ESTRUTURA e PALAVRAS DIFERENTES
-- REORGANIZAR a ordem das informações
-- Usar SINÔNIMOS criativos para cada palavra importante
-- VARIAR o comprimento das frases
+- Criar mensagens com o MESMO SENTIDO mas ESTRUTURA e PALAVRAS COMPLETAMENTE DIFERENTES
+- REORGANIZAR a ordem das informações de forma radical
+- Usar SINÔNIMOS criativos para CADA palavra importante
+- VARIAR o comprimento das frases drasticamente
 - MANTER o placeholder {nome} obrigatoriamente
 
 📝 TÉCNICAS OBRIGATÓRIAS DE VARIAÇÃO:
-1. SINONÍMIA: Trocar palavras por equivalentes
-   - "agradecer" → "expressar gratidão", "ser grato por"
-   - "confiança" → "parceria", "caminhada juntos"
-   - "desejamos" → "esperamos que", "torcemos para"
+
+1. SINONÍMIA RADICAL: Trocar TODAS as palavras-chave por equivalentes
+   - "agradecer" → "expressar gratidão", "ser grato por", "reconhecer"
+   - "confiança" → "parceria", "caminhada juntos", "jornada compartilhada"
+   - "desejamos" → "esperamos que", "torcemos para", "queremos muito que"
    
-2. REORGANIZAÇÃO: Mudar a estrutura
-   - Começar pelo agradecimento OU pela saudação
-   - Colocar os votos no início OU no final
+2. REORGANIZAÇÃO ESTRUTURAL:
+   - Começar pelo agradecimento OU pela saudação OU pelo desejo
+   - Colocar os votos no início OU no final OU no meio
    - Usar parágrafos curtos OU um bloco contínuo
    
-3. EXPANSÃO/CONTRAÇÃO:
-   - Adicionar detalhes em mensagens curtas
-   - Resumir mensagens longas mantendo essência
+3. TRANSFORMAÇÃO DE FRASES:
+   - Transformar AFIRMAÇÕES em PERGUNTAS RETÓRICAS
+   - Ex: "Você merece o melhor" → "Você não merece o melhor?"
+   - Quebrar frases longas em duas ou três curtas
+   - Ex: "Desejo felicidades e muito sucesso nesta jornada" → "Felicidades! Que sua jornada seja repleta de sucesso."
    
-4. TOM: Alternar entre estilos
-   - Formal → Casual → Emotivo → Motivacional
+4. INVERSÃO DE ORDEM:
+   - Se a CTA (call-to-action) está no fim, mova para o início
+   - Se a saudação está no início, mova para o meio ou fim
+   - Reorganize completamente a sequência de informações
 
-${hasEmojis ? `
-🎭 EMOJIS (original tem ${emojiCount}):
-- ~70% das variações: COM emojis DIFERENTES do original
-- ~30% das variações: SEM emojis (compensar com palavras expressivas)
-` : `
-🎭 EMOJIS (original não tem):
-- ~70% das variações: SEM emojis (manter estilo)
-- ~30% das variações: COM emojis sutis e apropriados
-`}
+5. TOM: Alternar RADICALMENTE entre estilos
+   - Formal → Casual → Emotivo → Motivacional → Objetivo → Poético
+
+${emojiPositionInstructions}
 
 ${allVariations.length > 0 ? `
-⚠️ VARIAÇÕES JÁ CRIADAS (NÃO REPETIR ESTILO):
-${allVariations.slice(-5).map((v, i) => `${i + 1}. ${v.substring(0, 80)}...`).join('\n')}
+⚠️ VARIAÇÕES JÁ CRIADAS (NÃO REPETIR ESTILO NEM ESTRUTURA):
+${allVariations.slice(-5).map((v, i) => `${i + 1}. ${v.substring(0, 100)}...`).join('\n')}
 ` : ''}
 
 📋 FORMATO DE SAÍDA:
 - Separe CADA variação com: ---VARIACAO---
 - NÃO numere as variações
-- Cada variação deve ser uma MENSAGEM COMPLETA
+- Cada variação deve ser uma MENSAGEM COMPLETA e ÚNICA
+- As variações devem ter no MÁXIMO 55% de similaridade com a original
 
-Crie ${batchSize} variações COMPLETAMENTE DIFERENTES da original e entre si.`;
+Crie ${batchSize} variações RADICALMENTE DIFERENTES da original e entre si. O HASH de cada mensagem deve ser único!`;
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Mensagem original:\n\n${originalMessage}\n\nCrie ${batchSize} variações ÚNICAS usando técnicas de sinonímia, reorganização e variação de tom.` }
-          ],
-          temperature: 0.95,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error('Limite de taxa excedido. Tente novamente em alguns instantes.');
-        }
-        if (response.status === 402) {
-          throw new Error('Créditos insuficientes. Adicione créditos à sua conta Lovable.');
-        }
-        const errorText = await response.text();
-        console.error('Lovable AI error:', response.status, errorText);
-        throw new Error('Erro ao gerar variações com IA');
-      }
-
-      const data = await response.json();
-      const generatedText = data.choices?.[0]?.message?.content;
-
-      if (!generatedText) {
-        throw new Error('No content generated');
-      }
-
-      // Processar e validar variações
-      const rawVariations = generatedText
-        .split('---VARIACAO---')
-        .map((v: string) => v.trim())
-        .filter((v: string) => v.length > 0);
-
-      const batchVariations: string[] = [];
+      // Primeira tentativa com batch
+      let batchVariations: string[] = [];
+      let retryAttempt = 0;
       
-      for (const variation of rawVariations) {
-        if (batchVariations.length >= batchSize) break;
+      while (batchVariations.length < batchSize && retryAttempt < MAX_RETRIES) {
+        console.log(`Batch attempt ${retryAttempt + 1}/${MAX_RETRIES}`);
         
-        const validation = isValidVariation(variation, originalMessage, [...allVariations, ...batchVariations]);
-        
-        if (validation.valid) {
-          batchVariations.push(variation);
-          console.log(`Variation accepted (${batchVariations.length}/${batchSize})`);
-        } else {
-          console.log(`Variation rejected: ${validation.reason}`);
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Mensagem original:\n\n${originalMessage}\n\nCrie ${batchSize - batchVariations.length} variações RADICALMENTE ÚNICAS usando técnicas de sinonímia, reorganização estrutural, transformação de frases e inversão de ordem.` }
+            ],
+            temperature: 1.0 + (retryAttempt * 0.1), // Aumentar temperatura a cada retry
+          }),
+        });
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            console.error('Rate limit hit, waiting...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retryAttempt++;
+            continue;
+          }
+          if (response.status === 402) {
+            throw new Error('Créditos insuficientes. Adicione créditos à sua conta Lovable.');
+          }
+          const errorText = await response.text();
+          console.error('Lovable AI error:', response.status, errorText);
+          retryAttempt++;
+          continue;
         }
+
+        const data = await response.json();
+        const generatedText = data.choices?.[0]?.message?.content;
+
+        if (!generatedText) {
+          console.error('No content generated in attempt', retryAttempt + 1);
+          retryAttempt++;
+          continue;
+        }
+
+        // Processar e validar variações
+        const rawVariations = generatedText
+          .split('---VARIACAO---')
+          .map((v: string) => v.trim())
+          .filter((v: string) => v.length > 0);
+
+        for (const variation of rawVariations) {
+          if (batchVariations.length >= batchSize) break;
+          
+          const validation = isValidVariation(
+            variation, 
+            originalMessage, 
+            [...allVariations, ...batchVariations],
+            originalEmojiPosition
+          );
+          
+          if (validation.valid) {
+            batchVariations.push(variation);
+            console.log(`Variation accepted (${batchVariations.length}/${batchSize})`);
+          } else {
+            console.log(`Variation rejected: ${validation.reason}`);
+          }
+        }
+        
+        retryAttempt++;
       }
 
-      // Fallback inteligente: gerar variações faltantes com técnicas específicas
-      const techniques = ['formal', 'casual', 'emotiva', 'curta', 'expandida', 'motivacional', 'poetica', 'objetiva'];
+      // Fallback inteligente com retry: gerar variações faltantes com técnicas específicas
+      const techniques = ['pergunta', 'invertida', 'fragmentada', 'formal', 'casual', 'emotiva', 'curta', 'expandida', 'motivacional', 'poetica', 'objetiva'];
       let techniqueIndex = 0;
-      let retryCount = 0;
-      const maxRetries = batchSize * 2;
+      let emergencyRetryCount = 0;
+      const maxEmergencyRetries = batchSize * 3; // Mais tentativas antes de desistir
 
-      while (batchVariations.length < batchSize && retryCount < maxRetries) {
-        console.log(`Fallback: generating emergency variation (${batchVariations.length}/${batchSize})`);
+      while (batchVariations.length < batchSize && emergencyRetryCount < maxEmergencyRetries) {
+        console.log(`Emergency fallback: generating variation (${batchVariations.length}/${batchSize}), attempt ${emergencyRetryCount + 1}`);
         
         const technique = techniques[techniqueIndex % techniques.length];
         techniqueIndex++;
-        retryCount++;
+        emergencyRetryCount++;
         
         const emergencyVariation = await generateEmergencyVariation(
           originalMessage,
           technique,
-          LOVABLE_API_KEY
+          LOVABLE_API_KEY,
+          originalEmojiPosition,
+          emergencyRetryCount
         );
 
         if (emergencyVariation) {
           const validation = isValidVariation(
             emergencyVariation, 
             originalMessage, 
-            [...allVariations, ...batchVariations]
+            [...allVariations, ...batchVariations],
+            originalEmojiPosition
           );
           
           if (validation.valid) {
@@ -329,22 +445,35 @@ Crie ${batchSize} variações COMPLETAMENTE DIFERENTES da original e entre si.`;
         }
       }
 
-      // Se ainda faltam, usar a original (último recurso)
-      while (batchVariations.length < batchSize) {
-        console.log('Warning: Using original as last resort fallback');
-        batchVariations.push(originalMessage);
+      // NÃO usar fallback silencioso! Registrar slots que falharam
+      const missingCount = batchSize - batchVariations.length;
+      if (missingCount > 0) {
+        console.warn(`WARNING: ${missingCount} variations could not be generated - leaving empty for manual review`);
+        for (let i = 0; i < missingCount; i++) {
+          const slotIndex = allVariations.length + batchVariations.length + i + 1; // +1 porque original é slot 0
+          failedSlots.push(slotIndex);
+          batchVariations.push(''); // Deixar vazio em vez de usar original
+        }
       }
 
       allVariations.push(...batchVariations);
-      console.log(`Batch ${batch + 1} complete: ${batchVariations.length} variations`);
+      console.log(`Batch ${batch + 1} complete: ${batchVariations.length} variations (${missingCount} empty)`);
     }
 
-    console.log(`Total generated: ${allVariations.length} variations (requested: ${toGenerate})`);
+    const validVariationsCount = allVariations.filter(v => v.length > 0).length;
+    const emptyCount = allVariations.filter(v => v.length === 0).length;
+    
+    console.log(`Total generated: ${validVariationsCount} valid variations, ${emptyCount} empty slots (requested: ${toGenerate})`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        variations: [originalMessage, ...allVariations]
+        variations: [originalMessage, ...allVariations],
+        failedCount: emptyCount,
+        failedSlots: failedSlots,
+        message: emptyCount > 0 
+          ? `${emptyCount} variação(ões) não puderam ser geradas. Por favor, preencha manualmente.`
+          : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
