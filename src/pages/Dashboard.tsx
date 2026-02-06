@@ -605,18 +605,17 @@ const Dashboard = () => {
                   <Shield className="h-5 w-5 text-red-500" />
                   Administração
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <Link to="/admin/support" className="block h-full">
-                    <Card className="relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
-                      <CardHeader className="pl-5">
-                        <CardTitle className="flex items-center gap-3 text-lg font-bold">
-                          <div className="p-2.5 rounded-lg bg-red-500/10">
-                            <Shield className="h-5 w-5 text-red-500" />
-                          </div>
+                    <Card className="cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full">
+                      <CardHeader className="p-5 pb-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/20 to-red-500/10 flex items-center justify-center mb-4 shadow-sm">
+                          <Shield className="h-6 w-6 text-red-500" />
+                        </div>
+                        <CardTitle className="text-lg font-bold text-foreground">
                           Suporte
                         </CardTitle>
-                        <CardDescription className="text-sm mt-2 text-muted-foreground">
+                        <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                           Ver conversas de suporte dos usuários
                         </CardDescription>
                       </CardHeader>
@@ -624,16 +623,15 @@ const Dashboard = () => {
                   </Link>
 
                   <Link to="/admin/audit-log" className="block h-full">
-                    <Card className="relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500" />
-                      <CardHeader className="pl-5">
-                        <CardTitle className="flex items-center gap-3 text-lg font-bold">
-                          <div className="p-2.5 rounded-lg bg-orange-500/10">
-                            <FileText className="h-5 w-5 text-orange-500" />
-                          </div>
+                    <Card className="cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full">
+                      <CardHeader className="p-5 pb-4">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/10 flex items-center justify-center mb-4 shadow-sm">
+                          <FileText className="h-6 w-6 text-orange-500" />
+                        </div>
+                        <CardTitle className="text-lg font-bold text-foreground">
                           Auditoria
                         </CardTitle>
-                        <CardDescription className="text-sm mt-2 text-muted-foreground">
+                        <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                           Log de ações administrativas
                         </CardDescription>
                       </CardHeader>
@@ -644,55 +642,53 @@ const Dashboard = () => {
             )}
 
             {/* Action Cards - Meio */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
               <Card 
-                className={`relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full ${
+                className={`cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full ${
                   !subscription.has_access && subscription.verified ? 'opacity-75' : ''
                 }`}
                 onClick={handleNewCampaign}
               >
-                {/* Accent bar */}
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
-                
-                {/* Badge positioned top-right inside card */}
-                <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
-                  <Badge className="bg-emerald-500/90 text-white text-[10px] px-2 py-0.5 font-medium">
-                    Agendamento
-                  </Badge>
-                  {subscription.loading && subscription.verified === false ? (
-                    <Badge variant="secondary" className="gap-1 text-[10px] px-2 py-0.5">
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                      Verificando
-                    </Badge>
-                  ) : subscription.verified && !subscription.has_access ? (
-                    <Badge variant="destructive" className="text-[10px] px-2 py-0.5">Bloqueado</Badge>
-                  ) : null}
-                </div>
-
-                <CardHeader className="pl-5">
-                  <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                    <div className="p-2.5 rounded-lg bg-primary/10">
-                      <Zap className="h-5 w-5 text-primary" />
-                    </div>
+                <CardHeader className="p-5 pb-4">
+                  {/* Icon container - prominent circle */}
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4 shadow-sm">
+                    <Zap className="h-7 w-7 text-primary" />
+                  </div>
+                  
+                  <CardTitle className="text-lg font-bold text-foreground">
                     Nova Campanha
                   </CardTitle>
-                  <CardDescription className="text-sm mt-2 text-muted-foreground">
+                  <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                     Importar contatos e iniciar envio
                   </CardDescription>
+                  
+                  {/* Badges - horizontal alignment */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Badge className="bg-emerald-500/90 hover:bg-emerald-500 text-white text-[10px] px-2.5 py-1 font-medium rounded-full">
+                      Agendamento
+                    </Badge>
+                    {subscription.loading && subscription.verified === false ? (
+                      <Badge variant="secondary" className="gap-1 text-[10px] px-2.5 py-1 rounded-full">
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        Verificando
+                      </Badge>
+                    ) : subscription.verified && !subscription.has_access ? (
+                      <Badge variant="destructive" className="text-[10px] px-2.5 py-1 rounded-full">Bloqueado</Badge>
+                    ) : null}
+                  </div>
                 </CardHeader>
               </Card>
 
               <Link to="/contacts" className="block h-full">
-                <Card className="relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
-                  <CardHeader className="pl-5">
-                    <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                      <div className="p-2.5 rounded-lg bg-blue-500/10">
-                        <Users className="h-5 w-5 text-blue-500" />
-                      </div>
+                <Card className="cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full">
+                  <CardHeader className="p-5 pb-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center mb-4 shadow-sm">
+                      <Users className="h-7 w-7 text-blue-500" />
+                    </div>
+                    <CardTitle className="text-lg font-bold text-foreground">
                       Contatos
                     </CardTitle>
-                    <CardDescription className="text-sm mt-2 text-muted-foreground">
+                    <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                       Gerencie seus contatos e tags
                     </CardDescription>
                   </CardHeader>
@@ -700,16 +696,15 @@ const Dashboard = () => {
               </Link>
 
               <Link to="/history" className="block h-full">
-                <Card className="relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent" />
-                  <CardHeader className="pl-5">
-                    <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                      <div className="p-2.5 rounded-lg bg-accent/10">
-                        <History className="h-5 w-5 text-accent" />
-                      </div>
+                <Card className="cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full">
+                  <CardHeader className="p-5 pb-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent/20 to-accent/10 flex items-center justify-center mb-4 shadow-sm">
+                      <History className="h-7 w-7 text-accent" />
+                    </div>
+                    <CardTitle className="text-lg font-bold text-foreground">
                       Histórico
                     </CardTitle>
-                    <CardDescription className="text-sm mt-2 text-muted-foreground">
+                    <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                       Visualizar campanhas anteriores
                     </CardDescription>
                   </CardHeader>
@@ -717,16 +712,15 @@ const Dashboard = () => {
               </Link>
 
               <Link to="/templates" className="block h-full">
-                <Card className="relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-purple-500" />
-                  <CardHeader className="pl-5">
-                    <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                      <div className="p-2.5 rounded-lg bg-purple-500/10">
-                        <FileText className="h-5 w-5 text-purple-500" />
-                      </div>
+                <Card className="cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full">
+                  <CardHeader className="p-5 pb-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/10 flex items-center justify-center mb-4 shadow-sm">
+                      <FileText className="h-7 w-7 text-purple-500" />
+                    </div>
+                    <CardTitle className="text-lg font-bold text-foreground">
                       Templates
                     </CardTitle>
-                    <CardDescription className="text-sm mt-2 text-muted-foreground">
+                    <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                       Gerencie modelos de mensagens
                     </CardDescription>
                   </CardHeader>
@@ -734,16 +728,15 @@ const Dashboard = () => {
               </Link>
 
               <Link to="/referral" className="block h-full">
-                <Card className="relative cursor-pointer bg-card shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-border/50 overflow-hidden h-full">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
-                  <CardHeader className="pl-5">
-                    <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                      <div className="p-2.5 rounded-lg bg-emerald-500/10">
-                        <Gift className="h-5 w-5 text-emerald-500" />
-                      </div>
+                <Card className="cursor-pointer bg-slate-50/80 dark:bg-slate-900/50 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border-0 h-full">
+                  <CardHeader className="p-5 pb-4">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/10 flex items-center justify-center mb-4 shadow-sm">
+                      <Gift className="h-7 w-7 text-emerald-500" />
+                    </div>
+                    <CardTitle className="text-lg font-bold text-foreground">
                       Indique e Ganhe
                     </CardTitle>
-                    <CardDescription className="text-sm mt-2 text-muted-foreground">
+                    <CardDescription className="text-sm mt-1.5 text-muted-foreground">
                       Convide amigos e ganhe +30 dias
                     </CardDescription>
                   </CardHeader>
