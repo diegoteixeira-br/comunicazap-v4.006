@@ -136,8 +136,8 @@ async function generateEmergencyVariation(
     emojiInstruction = 'Se usar emojis, coloque-os NO INÍCIO ou NO FIM da mensagem, NUNCA no meio.';
   }
   
-  // 30% das tentativas devem ser sem emoji
-  const shouldBeWithoutEmoji = attemptNumber % 3 === 0;
+  // 10% das tentativas devem ser sem emoji
+  const shouldBeWithoutEmoji = attemptNumber % 10 === 0;
   if (shouldBeWithoutEmoji) {
     emojiInstruction = 'NÃO use nenhum emoji nesta variação. Use apenas texto puro.';
   }
@@ -248,31 +248,31 @@ serve(async (req) => {
         emojiPositionInstructions = `
 ⚠️ POSIÇÃO DE EMOJIS - REGRA CRÍTICA:
 A mensagem original tem emoji(s) NO FIM.
-- 40% das variações: emojis NO INÍCIO da mensagem
-- 30% das variações: emojis NO MEIO da mensagem  
-- 30% das variações: SEM EMOJIS (texto puro)
+- 45% das variações: emojis NO INÍCIO da mensagem
+- 45% das variações: emojis NO MEIO da mensagem  
+- 10% das variações: SEM EMOJIS (texto puro)
 - NUNCA coloque emoji no fim igual a original!`;
       } else if (originalEmojiPosition === 'inicio') {
         emojiPositionInstructions = `
 ⚠️ POSIÇÃO DE EMOJIS - REGRA CRÍTICA:
 A mensagem original tem emoji(s) NO INÍCIO.
-- 40% das variações: emojis NO FIM da mensagem
-- 30% das variações: emojis NO MEIO da mensagem
-- 30% das variações: SEM EMOJIS (texto puro)
+- 45% das variações: emojis NO FIM da mensagem
+- 45% das variações: emojis NO MEIO da mensagem
+- 10% das variações: SEM EMOJIS (texto puro)
 - NUNCA coloque emoji no início igual a original!`;
       } else if (originalEmojiPosition === 'meio') {
         emojiPositionInstructions = `
 ⚠️ POSIÇÃO DE EMOJIS - REGRA CRÍTICA:
 A mensagem original tem emoji(s) NO MEIO.
-- 40% das variações: emojis NO INÍCIO da mensagem
-- 30% das variações: emojis NO FIM da mensagem
-- 30% das variações: SEM EMOJIS (texto puro)
+- 45% das variações: emojis NO INÍCIO da mensagem
+- 45% das variações: emojis NO FIM da mensagem
+- 10% das variações: SEM EMOJIS (texto puro)
 - NUNCA coloque emoji no meio igual a original!`;
       } else {
         emojiPositionInstructions = `
 🎭 EMOJIS (original não tem):
-- 70% das variações: SEM emojis (manter estilo)
-- 30% das variações: COM emojis sutis e apropriados (variar posições)`;
+- 90% das variações: SEM emojis (manter estilo)
+- 10% das variações: COM emojis sutis e apropriados (variar posições)`;
       }
 
       const systemPrompt = `Você é um COPYWRITER ESPECIALISTA em criar VARIAÇÕES ÚNICAS de mensagens para WhatsApp.
